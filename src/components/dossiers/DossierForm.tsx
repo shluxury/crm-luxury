@@ -62,7 +62,7 @@ export default function DossierForm({ dossier, clients, onSuccess }: DossierForm
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <Input label="Nom du dossier *" {...register('nom')} error={errors.nom?.message} placeholder="Grand Prix Monaco 2025" />
+      <Input label="Nom du dossier *" {...register('nom')} error={errors.nom?.message} placeholder="Ex: Événement corporate — Mai 2025" />
 
       <div className="grid grid-cols-2 gap-3">
         <Select label="Entité" {...register('entite')} options={entiteOptions} />
