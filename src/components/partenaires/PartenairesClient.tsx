@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Trash2, Handshake, Search, Mail, Phone, MapPin, Users } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
@@ -18,6 +19,7 @@ interface PartenairesClientProps {
 type FilterTab = 'all' | 'pending' | 'paid'
 
 export default function PartenairesClient({ initialPartenaires, statsMap }: PartenairesClientProps) {
+  const router = useRouter()
   const [partenaires, setPartenaires] = useState(initialPartenaires)
   const [search, setSearch] = useState('')
   const [filterTab, setFilterTab] = useState<FilterTab>('all')
@@ -37,7 +39,7 @@ export default function PartenairesClient({ initialPartenaires, statsMap }: Part
 
   function openCreate() { setEditPartenaire(undefined); setModalOpen(true) }
   function openEdit(p: Partenaire) { setEditPartenaire(p); setModalOpen(true) }
-  function handleSuccess() { setModalOpen(false); window.location.reload() }
+  function handleSuccess() { setModalOpen(false); router.refresh() }
 
   async function handleDelete(id: string) {
     if (!confirm('Supprimer ce partenaire ?')) return

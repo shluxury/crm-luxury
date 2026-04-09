@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth-guard'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -25,7 +26,11 @@ export async function getChauffeurs() {
   return data
 }
 
+const STATUT_CHAUFFEUR = ['disponible', 'indisponible', 'en_mission'] as const
+
 export async function updateStatutChauffeurAction(id: string, statut: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
+  if (!(STATUT_CHAUFFEUR as readonly string[]).includes(statut)) return { error: 'Statut invalide' }
   const supabase = await createClient()
   const { error } = await supabase.from('chauffeurs').update({ statut }).eq('id', id)
   if (error) return { error: error.message }
@@ -57,6 +62,7 @@ export async function getChauffeursWithStats() {
 }
 
 export async function createChauffeurAction(input: ChauffeurInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = ChauffeurSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -69,6 +75,7 @@ export async function createChauffeurAction(input: ChauffeurInput) {
 }
 
 export async function updateChauffeurAction(id: string, input: ChauffeurInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = ChauffeurSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -81,6 +88,7 @@ export async function updateChauffeurAction(id: string, input: ChauffeurInput) {
 }
 
 export async function deleteChauffeurAction(id: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const supabase = await createClient()
   const { error } = await supabase.from('chauffeurs').delete().eq('id', id)
   if (error) return { error: error.message }

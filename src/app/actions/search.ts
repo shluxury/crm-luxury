@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth-guard'
 
 export interface SearchResult {
   type: 'client' | 'reservation' | 'chauffeur' | 'partenaire' | 'facture'
@@ -11,9 +12,12 @@ export interface SearchResult {
 }
 
 export async function globalSearchAction(query: string): Promise<SearchResult[]> {
+  try { await requireAuth() } catch { return [] }
   if (!query || query.trim().length < 2) return []
 
-  const q = query.trim().toLowerCase()
+  // Sanitize: garder uniquement alphanumérique + espaces + tirets pour éviter injection PostgREST
+  const q = query.trim().toLowerCase().slice(0, 100).replace(/[%_\\]/g, '')
+  if (!q) return []
   const supabase = await createClient()
 
   const [clientsRes, resasRes, chauffeursRes, partenairesRes, facturesRes] = await Promise.all([

@@ -1,8 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth-guard'
 import { getSettings } from '@/app/actions/settings'
 import { buildEmail, type EmailTemplate } from '@/lib/email-templates'
+
+function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;')
+}
 
 interface SendEmailParams {
   template: EmailTemplate
@@ -16,6 +21,7 @@ interface SendEmailParams {
 }
 
 export async function sendEmailAction(params: SendEmailParams) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const { template, reservationId, toEmail, toName, lang = 'fr', chauffeurNom, customSubject, customHtml } = params
 
   const [settings, supabase] = await Promise.all([getSettings(), createClient()])
@@ -117,6 +123,7 @@ export async function sendEmailAction(params: SendEmailParams) {
 }
 
 export async function sendFactureEmailAction(factureId: string, toEmail: string, toName: string, customMessage?: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const [settings, supabase] = await Promise.all([getSettings(), createClient()])
 
   const brevoKey = settings.email.brevo_key
@@ -143,7 +150,7 @@ export async function sendFactureEmailAction(factureId: string, toEmail: string,
   const subject = `Votre facture ${numero} - ${montant} ${currency}`
 
   const messageHtml = customMessage
-    ? `<p style="font-size:14px;color:#333;margin-bottom:16px;">${customMessage.replace(/\n/g, '<br>')}</p>`
+    ? `<p style="font-size:14px;color:#333;margin-bottom:16px;">${escHtml(customMessage).replace(/\n/g, '<br>')}</p>`
     : ''
 
   const html = `
@@ -191,16 +198,16 @@ export async function sendFactureEmailAction(factureId: string, toEmail: string,
   }
 
   // Passer le statut à 'sent' si encore en 'draft'
-  const supabase2 = await createClient()
   const factureStatut = (facture.statut as string) ?? ''
   if (factureStatut === 'draft') {
-    await supabase2.from('factures').update({ statut: 'sent' }).eq('id', factureId)
+    await supabase.from('factures').update({ statut: 'sent' }).eq('id', factureId)
   }
 
   return { success: true, newStatut: factureStatut === 'draft' ? 'sent' : factureStatut }
 }
 
 export async function getEmailPreview(template: EmailTemplate, reservationId: string, lang: 'fr' | 'en' = 'fr') {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const [settings, supabase] = await Promise.all([getSettings(), createClient()])
 
   const { data: resaRaw2, error } = await supabase

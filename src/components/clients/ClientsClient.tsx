@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Trash2, Users, Search, Mail, CalendarPlus, Eye } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
@@ -17,6 +18,7 @@ interface ClientsClientProps {
 }
 
 export default function ClientsClient({ initialClients }: ClientsClientProps) {
+  const router = useRouter()
   const [clients, setClients] = useState(initialClients)
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState<'' | 'particulier' | 'corporate'>('')
@@ -66,7 +68,7 @@ export default function ClientsClient({ initialClients }: ClientsClientProps) {
 
   function handleSuccess() {
     setModalOpen(false)
-    window.location.reload()
+    router.refresh()
   }
 
   async function handleDelete(id: string) {

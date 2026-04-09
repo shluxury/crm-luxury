@@ -85,42 +85,48 @@ export async function getFlightAlertsAction(): Promise<{ data?: FlightAlert[]; e
   if (error) return { error: error.message }
   if (!resas || resas.length === 0) return { data: [] }
 
-  const alerts: FlightAlert[] = []
+  // Dédupliquer les numéros de vol pour économiser les appels API
+  const uniqueVols = [...new Set(resas.map((r) => (r as unknown as Record<string, unknown>).num_vol as string))]
 
-  for (const r of resas) {
+  // Récupérer tous les vols en parallèle
+  const flightCache = new Map<string, FlightInfo | null>()
+  await Promise.all(
+    uniqueVols.map(async (numVol) => {
+      try {
+        const res = await fetch(
+          `https://airlabs.co/api/v9/schedules?flight_iata=${encodeURIComponent(numVol)}&api_key=${apiKey}`,
+          { next: { revalidate: 300 } }
+        )
+        if (res.ok) {
+          const json = await res.json() as { response?: FlightInfo[] }
+          flightCache.set(numVol, json.response?.[0] ?? null)
+        } else {
+          flightCache.set(numVol, null)
+        }
+      } catch {
+        flightCache.set(numVol, null)
+      }
+    })
+  )
+
+  const alerts: FlightAlert[] = resas.map((r) => {
     const resa = r as unknown as Record<string, unknown>
     const client = resa.client as Record<string, string> | null
     const numVol = resa.num_vol as string
+    const flight = flightCache.get(numVol) ?? null
 
-    // Cherche infos vol
-    let flight: FlightInfo | null = null
     let alertMsg: string | null = null
-
-    try {
-      const res = await fetch(
-        `https://airlabs.co/api/v9/schedules?flight_iata=${encodeURIComponent(numVol)}&api_key=${apiKey}`,
-        { next: { revalidate: 300 } }
-      )
-      if (res.ok) {
-        const json = await res.json() as { response?: FlightInfo[] }
-        if (json.response && json.response.length > 0) {
-          flight = json.response[0]
-
-          // Génère alerte si retard ou annulation
-          if (flight.status === 'cancelled') {
-            alertMsg = `Vol annulé`
-          } else if (flight.dep_delayed && flight.dep_delayed > 15) {
-            alertMsg = `Retard départ ${flight.dep_delayed} min`
-          } else if (flight.arr_delayed && flight.arr_delayed > 15) {
-            alertMsg = `Retard arrivée ${flight.arr_delayed} min`
-          }
-        }
+    if (flight) {
+      if (flight.status === 'cancelled') {
+        alertMsg = `Vol annulé`
+      } else if (flight.dep_delayed && flight.dep_delayed > 15) {
+        alertMsg = `Retard départ ${flight.dep_delayed} min`
+      } else if (flight.arr_delayed && flight.arr_delayed > 15) {
+        alertMsg = `Retard arrivée ${flight.arr_delayed} min`
       }
-    } catch {
-      // Continue sans alerte si erreur réseau
     }
 
-    alerts.push({
+    return {
       reservation_id: resa.id as string,
       num_vol: numVol,
       client_nom: client ? `${client.prenom} ${client.nom}` : '-',
@@ -128,8 +134,8 @@ export async function getFlightAlertsAction(): Promise<{ data?: FlightAlert[]; e
       heure_resa: resa.heure as string,
       flight,
       alert: alertMsg,
-    })
-  }
+    }
+  })
 
   return { data: alerts }
 }

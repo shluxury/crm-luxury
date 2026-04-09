@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth-guard'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -26,6 +27,7 @@ export async function getDossiers() {
 }
 
 export async function createDossierAction(input: DossierInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = DossierSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -38,6 +40,7 @@ export async function createDossierAction(input: DossierInput) {
 }
 
 export async function updateDossierAction(id: string, input: DossierInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = DossierSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -50,6 +53,7 @@ export async function updateDossierAction(id: string, input: DossierInput) {
 }
 
 export async function deleteDossierAction(id: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const supabase = await createClient()
   const { error } = await supabase.from('dossiers').delete().eq('id', id)
   if (error) return { error: error.message }
@@ -59,23 +63,18 @@ export async function deleteDossierAction(id: string) {
 }
 
 export async function encaisserDossierAction(id: string, montant: number) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
+  if (typeof montant !== 'number' || montant <= 0) return { error: 'Montant invalide' }
+
   const supabase = await createClient()
 
-  // Récupère le montant actuel
-  const { data, error: fetchError } = await supabase
-    .from('dossiers')
-    .select('montant_percu')
-    .eq('id', id)
-    .single()
-  if (fetchError || !data) return { error: 'Dossier introuvable' }
-
-  const newMontant = (data.montant_percu ?? 0) + montant
-  const { error } = await supabase
-    .from('dossiers')
-    .update({ montant_percu: newMontant })
-    .eq('id', id)
+  // Mise à jour atomique via RPC PostgreSQL — évite la race condition READ-then-WRITE
+  const { data, error } = await supabase.rpc('increment_dossier_encaissement', {
+    p_dossier_id: id,
+    p_montant: montant,
+  })
   if (error) return { error: error.message }
 
   revalidatePath('/dossiers')
-  return { success: true, montant_percu: newMontant }
+  return { success: true, montant_percu: data as number }
 }

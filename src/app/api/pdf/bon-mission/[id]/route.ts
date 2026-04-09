@@ -20,6 +20,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   const supabase = await createClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new Response('Non authentifié', { status: 401 })
+
   const { data: raw, error } = await supabase
     .from('reservations')
     .select('*, client:clients(id, prenom, nom, tel, email, langue, pref_vehicule, pref_notes_chauffeur), chauffeur:chauffeurs(id, nom, tel), partenaire:partenaires(id, nom, tel)')

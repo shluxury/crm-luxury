@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Trash2, FileText, Mail, Printer } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
@@ -27,6 +28,7 @@ interface FacturationClientProps {
 }
 
 export default function FacturationClient({ initialFactures, clients }: FacturationClientProps) {
+  const router = useRouter()
   const { entites } = useSettings()
   const [factures, setFactures] = useState(initialFactures)
   const [filterTab, setFilterTab] = useState<FilterTab>('all')
@@ -58,7 +60,7 @@ export default function FacturationClient({ initialFactures, clients }: Facturat
 
   function openCreate() { setEditFacture(undefined); setModalOpen(true) }
   function openEdit(f: Record<string, unknown>) { setEditFacture(f); setModalOpen(true) }
-  function handleSuccess() { setModalOpen(false); window.location.reload() }
+  function handleSuccess() { setModalOpen(false); router.refresh() }
 
   function openEmailModal(f: Record<string, unknown>) {
     const client = f.client as Record<string, string> | null

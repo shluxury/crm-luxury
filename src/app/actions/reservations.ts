@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth-guard'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -66,6 +67,7 @@ export async function getReservations() {
 }
 
 export async function createReservationAction(input: ReservationInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = ReservationSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -78,6 +80,7 @@ export async function createReservationAction(input: ReservationInput) {
 }
 
 export async function updateReservationAction(id: string, input: ReservationInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = ReservationSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -89,7 +92,13 @@ export async function updateReservationAction(id: string, input: ReservationInpu
   return { success: true }
 }
 
+const STATUT_RESERVATION = ['devis', 'confirmed', 'paid', 'part_paid', 'completed', 'cancelled'] as const
+const FACT_STATUT_VALUES = ['non_facture', 'facture', 'encaisse'] as const
+
 export async function updateStatutAction(id: string, statut: string, cancel_reason?: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
+  if (!(STATUT_RESERVATION as readonly string[]).includes(statut)) return { error: 'Statut invalide' }
+
   const supabase = await createClient()
   const { error } = await supabase
     .from('reservations')
@@ -102,6 +111,9 @@ export async function updateStatutAction(id: string, statut: string, cancel_reas
 }
 
 export async function updateFactStatutAction(id: string, fact_statut: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
+  if (!(FACT_STATUT_VALUES as readonly string[]).includes(fact_statut)) return { error: 'Statut invalide' }
+
   const supabase = await createClient()
   const { error } = await supabase.from('reservations').update({ fact_statut }).eq('id', id)
   if (error) return { error: error.message }
@@ -111,6 +123,7 @@ export async function updateFactStatutAction(id: string, fact_statut: string) {
 }
 
 export async function duplicateReservationAction(id: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const supabase = await createClient()
   const { data, error } = await supabase.from('reservations').select('*').eq('id', id).single()
   if (error) return { error: error.message }
@@ -131,6 +144,7 @@ export async function duplicateReservationAction(id: string) {
 }
 
 export async function deleteReservationAction(id: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const supabase = await createClient()
   const { error } = await supabase.from('reservations').delete().eq('id', id)
   if (error) return { error: error.message }
@@ -140,25 +154,21 @@ export async function deleteReservationAction(id: string) {
 }
 
 export async function addNoteReservationAction(id: string, note: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   if (!note.trim()) return { error: 'Note vide' }
 
   const supabase = await createClient()
-  // Lire les notes actuelles
-  const { data, error: fetchError } = await supabase
-    .from('reservations')
-    .select('notes')
-    .eq('id', id)
-    .single()
-  if (fetchError) return { error: fetchError.message }
 
   const now = new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-  const newEntry = `[${now}] ${note.trim()}`
-  const currentNotes = (data?.notes as string) ?? ''
-  const updatedNotes = currentNotes ? `${newEntry}\n${currentNotes}` : newEntry
+  const entry = `[${now}] ${note.trim()}`
 
-  const { error } = await supabase.from('reservations').update({ notes: updatedNotes }).eq('id', id)
+  // Mise à jour atomique via RPC PostgreSQL — évite la race condition READ-then-WRITE
+  const { data, error } = await supabase.rpc('prepend_reservation_note', {
+    p_id: id,
+    p_note: entry,
+  })
   if (error) return { error: error.message }
 
   revalidatePath('/reservations')
-  return { success: true, notes: updatedNotes }
+  return { success: true, notes: data as string }
 }

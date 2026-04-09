@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Trash2, CalendarDays, Search, Copy, Mail, ChevronDown, Filter, FileText, UserCheck, Receipt, SlidersHorizontal } from 'lucide-react'
 import EmailModal from '@/components/emails/EmailModal'
 import Button from '@/components/ui/Button'
@@ -223,6 +224,7 @@ interface ReservationsClientProps {
 type FilterTab = 'all' | 'confirmed' | 'devis' | 'completed' | 'cancelled'
 
 export default function ReservationsClient({ initialReservations, clients, chauffeurs, partenaires, dossiers }: ReservationsClientProps) {
+  const router = useRouter()
   const [reservations, setReservations] = useState(initialReservations)
   const [search, setSearch] = useState('')
   const [filterTab, setFilterTab] = useState<FilterTab>('all')
@@ -291,7 +293,7 @@ export default function ReservationsClient({ initialReservations, clients, chauf
 
   function openCreate() { setEditResa(undefined); setModalOpen(true) }
   function openEdit(r: Record<string, unknown>) { setEditResa(r); setModalOpen(true) }
-  function handleSuccess() { setModalOpen(false); window.location.reload() }
+  function handleSuccess() { setModalOpen(false); router.refresh() }
 
   async function handleDelete(id: string) {
     if (!confirm('Supprimer cette réservation ?')) return
@@ -301,7 +303,7 @@ export default function ReservationsClient({ initialReservations, clients, chauf
 
   async function handleDuplicate(id: string) {
     await duplicateReservationAction(id)
-    window.location.reload()
+    router.refresh()
   }
 
   function handleStatutUpdate(id: string, newStatut: string) {

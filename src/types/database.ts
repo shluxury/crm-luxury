@@ -289,7 +289,16 @@ export type Database = {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      increment_dossier_encaissement: {
+        Args: { p_dossier_id: string; p_montant: number }
+        Returns: number
+      }
+      prepend_reservation_note: {
+        Args: { p_id: string; p_note: string }
+        Returns: string
+      }
+    }
     Enums: Record<string, never>
   }
 }

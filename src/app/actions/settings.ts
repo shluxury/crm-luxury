@@ -1,8 +1,12 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth-guard'
 import { revalidatePath } from 'next/cache'
 import type { AppSettings, EntiteConfig, Currency } from '@/types/database'
+
+const ALLOWED_SETTING_KEYS = ['entites', 'email', 'integrations', 'email_templates', 'localisation'] as const
+type AllowedKey = typeof ALLOWED_SETTING_KEYS[number]
 
 const DEFAULT_SETTINGS: AppSettings = {
   entites: [
@@ -60,10 +64,13 @@ export async function getSettings(): Promise<AppSettings> {
 }
 
 export async function updateSettingAction(cle: string, valeur: unknown) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
+  if (!(ALLOWED_SETTING_KEYS as readonly string[]).includes(cle)) return { error: 'Clé de paramètre invalide' }
+
   const supabase = await createClient()
   const { error } = await supabase
     .from('settings')
-    .upsert({ cle, valeur: valeur as import('@/types/database').Json }, { onConflict: 'cle' })
+    .upsert({ cle: cle as AllowedKey, valeur: valeur as import('@/types/database').Json }, { onConflict: 'cle' })
   if (error) return { error: error.message }
 
   revalidatePath('/', 'layout')

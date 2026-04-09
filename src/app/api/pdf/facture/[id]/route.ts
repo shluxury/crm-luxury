@@ -10,6 +10,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   const supabase = await createClient()
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new Response('Non authentifié', { status: 401 })
+
   const { data: factureRaw, error } = await supabase
     .from('factures')
     .select('*, client:clients(*), reservation:reservations(service, date, depart, destination, num_vol, vehicule, pax, nb_heures, resto, notes)')

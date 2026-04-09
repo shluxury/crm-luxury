@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Trash2, Car, Phone, Mail, Eye, CheckCircle2, Clock, XCircle } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
@@ -28,6 +29,7 @@ function getInitials(nom: string) {
 }
 
 export default function ChauffeursClient({ initialChauffeurs }: { initialChauffeurs: ChauffeurWithStats[] }) {
+  const router = useRouter()
   const [chauffeurs, setChauffeurs] = useState(initialChauffeurs)
   const [modalOpen, setModalOpen] = useState(false)
   const [editChauffeur, setEditChauffeur] = useState<Chauffeur | undefined>()
@@ -37,7 +39,7 @@ export default function ChauffeursClient({ initialChauffeurs }: { initialChauffe
   function openCreate() { setEditChauffeur(undefined); setModalOpen(true) }
   function openEdit(c: Chauffeur) { setEditChauffeur(c); setFicheChauffeur(null); setModalOpen(true) }
   function openFiche(c: ChauffeurWithStats) { setFicheChauffeur(c) }
-  function handleSuccess() { setModalOpen(false); window.location.reload() }
+  function handleSuccess() { setModalOpen(false); router.refresh() }
 
   async function handleDelete(id: string) {
     if (!confirm('Supprimer ce chauffeur ?')) return

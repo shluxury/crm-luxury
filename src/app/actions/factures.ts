@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth-guard'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { getSettings } from './settings'
@@ -30,7 +31,11 @@ export async function getFactures() {
   return data
 }
 
+const STATUT_FACTURE = ['draft', 'sent', 'paid', 'retard'] as const
+
 export async function updateFactureStatutAction(id: string, statut: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
+  if (!(STATUT_FACTURE as readonly string[]).includes(statut)) return { error: 'Statut invalide' }
   const supabase = await createClient()
   const { error } = await supabase.from('factures').update({ statut }).eq('id', id)
   if (error) return { error: error.message }
@@ -57,6 +62,7 @@ export async function getNextNumero(entiteId: string): Promise<string> {
 }
 
 export async function createFactureAction(input: FactureInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = FactureSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -69,6 +75,7 @@ export async function createFactureAction(input: FactureInput) {
 }
 
 export async function updateFactureAction(id: string, input: FactureInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = FactureSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -82,7 +89,16 @@ export async function updateFactureAction(id: string, input: FactureInput) {
 
 // Crée une facture pré-remplie depuis une réservation
 export async function createFactureFromReservationAction(reservationId: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const supabase = await createClient()
+
+  // Guard: vérifier qu'une facture n'existe pas déjà pour cette réservation
+  const { count: existingCount } = await supabase
+    .from('factures')
+    .select('*', { count: 'exact', head: true })
+    .eq('reservation_id', reservationId)
+  if ((existingCount ?? 0) > 0) return { error: 'Une facture existe déjà pour cette réservation' }
+
   const { data: resaRaw, error } = await supabase
     .from('reservations')
     .select('client_id, entite, montant, currency, mode_paiement, montant_percu')
@@ -128,9 +144,17 @@ export async function createFactureFromDossierAction(
   dossierId: string,
   reservationIds: string[],
 ) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   if (!reservationIds.length) return { error: 'Aucune réservation sélectionnée' }
 
   const supabase = await createClient()
+
+  // Guard: vérifier qu'une facture n'existe pas déjà pour ce dossier
+  const { count: existingDossierCount } = await supabase
+    .from('factures')
+    .select('*', { count: 'exact', head: true })
+    .eq('dossier_id', dossierId)
+  if ((existingDossierCount ?? 0) > 0) return { error: 'Une facture existe déjà pour ce dossier' }
 
   // Récupérer le dossier avec son client et les réservations sélectionnées
   const { data: dossierRaw, error: dossierErr } = await supabase
@@ -186,6 +210,7 @@ export async function createFactureFromDossierAction(
 }
 
 export async function deleteFactureAction(id: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const supabase = await createClient()
   const { error } = await supabase.from('factures').delete().eq('id', id)
   if (error) return { error: error.message }

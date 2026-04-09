@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth-guard'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -103,6 +104,7 @@ export async function getClientsWithStats(): Promise<ClientWithStats[]> {
 }
 
 export async function createClientAction(input: ClientInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = ClientSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -115,6 +117,7 @@ export async function createClientAction(input: ClientInput) {
 }
 
 export async function updateClientAction(id: string, input: ClientInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = ClientSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -127,6 +130,7 @@ export async function updateClientAction(id: string, input: ClientInput) {
 }
 
 export async function deleteClientAction(id: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const supabase = await createClient()
   const { error } = await supabase.from('clients').delete().eq('id', id)
   if (error) return { error: error.message }

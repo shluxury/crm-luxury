@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/lib/auth-guard'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
@@ -35,6 +36,7 @@ export async function getPartenaires() {
 }
 
 export async function createPartenaireAction(input: PartenaireInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = PartenaireSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -47,6 +49,7 @@ export async function createPartenaireAction(input: PartenaireInput) {
 }
 
 export async function updatePartenaireAction(id: string, input: PartenaireInput) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const parsed = PartenaireSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -59,6 +62,7 @@ export async function updatePartenaireAction(id: string, input: PartenaireInput)
 }
 
 export async function deletePartenaireAction(id: string) {
+  try { await requireAuth() } catch { return { error: 'Non authentifié' } }
   const supabase = await createClient()
   const { error } = await supabase.from('partenaires').delete().eq('id', id)
   if (error) return { error: error.message }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Pencil, Trash2, FolderOpen, Banknote, ChevronDown, ChevronUp, FileText } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
@@ -96,6 +97,7 @@ const STATUT_RESA: Record<string, string> = {
 }
 
 export default function DossiersClient({ initialDossiers, clients }: DossiersClientProps) {
+  const router = useRouter()
   const [dossiers, setDossiers] = useState(initialDossiers)
   const [filterTab, setFilterTab] = useState<FilterTab>('all')
   const [modalOpen, setModalOpen] = useState(false)
@@ -113,7 +115,7 @@ export default function DossiersClient({ initialDossiers, clients }: DossiersCli
 
   function openCreate() { setEditDossier(undefined); setModalOpen(true) }
   function openEdit(d: Record<string, unknown>) { setEditDossier(d); setModalOpen(true) }
-  function handleSuccess() { setModalOpen(false); window.location.reload() }
+  function handleSuccess() { setModalOpen(false); router.refresh() }
 
   async function handleDelete(id: string) {
     if (!confirm('Supprimer ce dossier ? Les réservations associées ne seront pas supprimées.')) return

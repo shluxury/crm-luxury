@@ -10,6 +10,10 @@ interface EmailData {
   lang: Lang
 }
 
+function esc(s: unknown): string {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
 const SERVICE_LABELS: Record<string, Record<Lang, string>> = {
   transfert_aeroport: { fr: 'Transfert aéroport', en: 'Airport transfer' },
   transfert_simple: { fr: 'Transfert', en: 'Transfer' },
@@ -23,21 +27,21 @@ const SERVICE_LABELS: Record<string, Record<Lang, string>> = {
 function base(title: string, body: string, entite: EntiteConfig) {
   return `<!DOCTYPE html>
 <html lang="fr">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><title>${title}</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><title>${esc(title)}</title></head>
 <body style="margin:0;padding:0;background:#0f0f0f;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f0f;padding:40px 20px;">
 <tr><td align="center">
 <table width="600" cellpadding="0" cellspacing="0" style="background:#1a1a1a;border-radius:12px;border:1px solid #2a2a2a;overflow:hidden;">
   <tr><td style="padding:32px 40px;border-bottom:1px solid #2a2a2a;">
-    <h1 style="margin:0;font-size:22px;font-weight:700;color:#C9A060;letter-spacing:0.5px;">${entite.nom || 'Conciergerie'}</h1>
-    ${entite.tel ? `<p style="margin:4px 0 0;font-size:13px;color:#888;">${entite.tel}</p>` : ''}
+    <h1 style="margin:0;font-size:22px;font-weight:700;color:#C9A060;letter-spacing:0.5px;">${esc(entite.nom) || 'Conciergerie'}</h1>
+    ${entite.tel ? `<p style="margin:4px 0 0;font-size:13px;color:#888;">${esc(entite.tel)}</p>` : ''}
   </td></tr>
   <tr><td style="padding:32px 40px;">
     ${body}
   </td></tr>
   <tr><td style="padding:20px 40px;border-top:1px solid #2a2a2a;text-align:center;">
-    <p style="margin:0;font-size:11px;color:#555;">${entite.nom || ''} ${entite.adresse ? '· ' + entite.adresse : ''}</p>
-    ${entite.email ? `<p style="margin:4px 0 0;font-size:11px;color:#555;"><a href="mailto:${entite.email}" style="color:#C9A060;">${entite.email}</a></p>` : ''}
+    <p style="margin:0;font-size:11px;color:#555;">${esc(entite.nom) || ''} ${entite.adresse ? '· ' + esc(entite.adresse) : ''}</p>
+    ${entite.email ? `<p style="margin:4px 0 0;font-size:11px;color:#555;"><a href="mailto:${esc(entite.email)}" style="color:#C9A060;">${esc(entite.email)}</a></p>` : ''}
   </td></tr>
 </table>
 </td></tr>
@@ -48,7 +52,7 @@ function base(title: string, body: string, entite: EntiteConfig) {
 function infoRow(label: string, value: string) {
   return `<tr>
     <td style="padding:6px 0;font-size:13px;color:#888;width:140px;">${label}</td>
-    <td style="padding:6px 0;font-size:13px;color:#e0e0e0;font-weight:500;">${value}</td>
+    <td style="padding:6px 0;font-size:13px;color:#e0e0e0;font-weight:500;">${esc(value)}</td>
   </tr>`
 }
 
@@ -75,14 +79,14 @@ export function buildConfirmationEmail({ reservation: r, client: c, entite, lang
   ].filter(Boolean).join('')
 
   const body = `
-    <h2 style="margin:0 0 8px;font-size:20px;color:#ffffff;">${isFr ? `Bonjour ${c.prenom},` : `Dear ${c.prenom},`}</h2>
+    <h2 style="margin:0 0 8px;font-size:20px;color:#ffffff;">${isFr ? `Bonjour ${esc(c.prenom)},` : `Dear ${esc(c.prenom)},`}</h2>
     <p style="margin:0 0 24px;font-size:14px;color:#aaa;line-height:1.6;">
       ${isFr ? 'Nous avons le plaisir de confirmer votre réservation :' : 'We are pleased to confirm your booking:'}
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;border-radius:8px;padding:20px 24px;margin-bottom:24px;">
       ${rows}
     </table>
-    ${r.notes ? `<p style="margin:0 0 24px;font-size:13px;color:#aaa;background:#111;border-radius:8px;padding:16px 20px;border-left:3px solid #C9A060;">${String(r.notes)}</p>` : ''}
+    ${r.notes ? `<p style="margin:0 0 24px;font-size:13px;color:#aaa;background:#111;border-radius:8px;padding:16px 20px;border-left:3px solid #C9A060;">${esc(r.notes)}</p>` : ''}
     <p style="margin:0;font-size:14px;color:#aaa;line-height:1.6;">
       ${isFr
         ? 'Pour toute question, n\'hésitez pas à nous contacter. Nous restons à votre disposition.'
@@ -90,7 +94,7 @@ export function buildConfirmationEmail({ reservation: r, client: c, entite, lang
     </p>
     <p style="margin:24px 0 0;font-size:14px;color:#888;">
       ${isFr ? 'Cordialement,' : 'Kind regards,'}<br>
-      <strong style="color:#C9A060;">${entite.nom || 'L\'équipe'}</strong>
+      <strong style="color:#C9A060;">${esc(entite.nom) || 'L\'équipe'}</strong>
     </p>`
 
   return { subject, html: base(subject, body, entite) }
@@ -130,13 +134,13 @@ export function buildChauffeurBriefEmail({ reservation: r, client: c, entite, la
     </table>
     ${r.notes ? `<div style="background:#111;border-radius:8px;padding:16px 20px;border-left:3px solid #C9A060;margin-bottom:16px;">
       <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#C9A060;text-transform:uppercase;letter-spacing:1px;">Notes</p>
-      <p style="margin:0;font-size:13px;color:#ccc;">${String(r.notes)}</p>
+      <p style="margin:0;font-size:13px;color:#ccc;">${esc(r.notes)}</p>
     </div>` : ''}
     ${(c as Record<string, unknown>).pref_notes_chauffeur ? `<div style="background:#111;border-radius:8px;padding:16px 20px;border-left:3px solid #888;margin-bottom:16px;">
       <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:1px;">Préférences client</p>
-      <p style="margin:0;font-size:13px;color:#ccc;">${String((c as Record<string, unknown>).pref_notes_chauffeur)}</p>
+      <p style="margin:0;font-size:13px;color:#ccc;">${esc((c as Record<string, unknown>).pref_notes_chauffeur)}</p>
     </div>` : ''}
-    <p style="margin:0;font-size:13px;color:#888;">Bonne mission !<br><strong style="color:#C9A060;">${entite.nom || 'Direction'}</strong></p>`
+    <p style="margin:0;font-size:13px;color:#888;">Bonne mission !<br><strong style="color:#C9A060;">${esc(entite.nom) || 'Direction'}</strong></p>`
 
   return { subject, html: base(subject, body, entite) }
 }
@@ -151,7 +155,7 @@ export function buildPaiementEmail({ reservation: r, client: c, entite, lang }: 
   const montant = `${(r.montant as number).toLocaleString()} ${r.currency}`
 
   const body = `
-    <h2 style="margin:0 0 8px;font-size:20px;color:#ffffff;">${isFr ? `Bonjour ${c.prenom},` : `Dear ${c.prenom},`}</h2>
+    <h2 style="margin:0 0 8px;font-size:20px;color:#ffffff;">${isFr ? `Bonjour ${esc(c.prenom)},` : `Dear ${esc(c.prenom)},`}</h2>
     <p style="margin:0 0 24px;font-size:14px;color:#aaa;line-height:1.6;">
       ${isFr ? 'Nous confirmons la réception de votre paiement.' : 'We confirm the receipt of your payment.'}
     </p>
@@ -162,7 +166,7 @@ export function buildPaiementEmail({ reservation: r, client: c, entite, lang }: 
     </table>
     <p style="margin:24px 0 0;font-size:14px;color:#888;">
       ${isFr ? 'Merci de votre confiance.' : 'Thank you for your trust.'}<br>
-      <strong style="color:#C9A060;">${entite.nom || 'L\'équipe'}</strong>
+      <strong style="color:#C9A060;">${esc(entite.nom) || 'L\'équipe'}</strong>
     </p>`
 
   return { subject, html: base(subject, body, entite) }
