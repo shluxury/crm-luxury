@@ -123,6 +123,68 @@ export async function createFactureFromReservationAction(reservationId: string) 
   return { success: true, id: (created as Record<string, string>).id }
 }
 
+// Crée une facture groupée depuis les réservations d'un dossier
+export async function createFactureFromDossierAction(
+  dossierId: string,
+  reservationIds: string[],
+) {
+  if (!reservationIds.length) return { error: 'Aucune réservation sélectionnée' }
+
+  const supabase = await createClient()
+
+  // Récupérer le dossier avec son client et les réservations sélectionnées
+  const { data: dossierRaw, error: dossierErr } = await supabase
+    .from('dossiers')
+    .select('client_id, entite, nom')
+    .eq('id', dossierId)
+    .single()
+  if (dossierErr || !dossierRaw) return { error: 'Dossier introuvable' }
+  const dossier = dossierRaw as Record<string, unknown>
+
+  // Récupérer les réservations sélectionnées
+  const { data: resasRaw, error: resasErr } = await supabase
+    .from('reservations')
+    .select('id, montant, currency, mode_paiement, entite')
+    .in('id', reservationIds)
+  if (resasErr || !resasRaw) return { error: 'Réservations introuvables' }
+  const resas = resasRaw as Record<string, unknown>[]
+
+  // Calculer le montant total
+  const total = resas.reduce((sum, r) => sum + ((r.montant as number) ?? 0), 0)
+  const entiteId = (dossier.entite as string) ?? (resas[0]?.entite as string) ?? 'entite_1'
+  const currency = (resas[0]?.currency as FactureInput['currency']) ?? 'EUR'
+  const numero = await getNextNumero(entiteId)
+
+  const input: FactureInput = {
+    numero,
+    client_id: (dossier.client_id as string) ?? null,
+    entite: entiteId,
+    montant: Math.round(total * 100) / 100,
+    currency,
+    mode_paiement: (resas[0]?.mode_paiement as FactureInput['mode_paiement']) ?? null,
+    statut: 'draft',
+    notes: `Facture groupée — Dossier : ${dossier.nom as string ?? dossierId}`,
+    dossier_id: dossierId,
+  }
+  const parsed = FactureSchema.safeParse(input)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const { data: created, error: insertError } = await supabase
+    .from('factures')
+    .insert(parsed.data)
+    .select('id')
+    .single()
+  if (insertError) return { error: insertError.message }
+
+  // Marquer toutes les réservations sélectionnées comme facturées
+  await supabase.from('reservations').update({ fact_statut: 'facture' }).in('id', reservationIds)
+
+  revalidatePath('/facturation')
+  revalidatePath('/dossiers')
+  revalidatePath('/reservations')
+  return { success: true, id: (created as Record<string, string>).id }
+}
+
 export async function deleteFactureAction(id: string) {
   const supabase = await createClient()
   const { error } = await supabase.from('factures').delete().eq('id', id)

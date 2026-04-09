@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, FolderOpen, Banknote, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Pencil, Trash2, FolderOpen, Banknote, ChevronDown, ChevronUp, FileText } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import DossierForm from './DossierForm'
 import { deleteDossierAction, encaisserDossierAction } from '@/app/actions/dossiers'
+import { createFactureFromDossierAction } from '@/app/actions/factures'
 import type { Client } from '@/types/database'
 
 const STATUT_LABELS: Record<string, { label: string; cls: string }> = {
@@ -100,6 +101,10 @@ export default function DossiersClient({ initialDossiers, clients }: DossiersCli
   const [modalOpen, setModalOpen] = useState(false)
   const [editDossier, setEditDossier] = useState<Record<string, unknown> | undefined>()
   const [encaisserDossier, setEncaisserDossier] = useState<Record<string, unknown> | undefined>()
+  const [factureGroupeeDossier, setFactureGroupeeDossier] = useState<Record<string, unknown> | undefined>()
+  const [factureGroupeeSelected, setFactureGroupeeSelected] = useState<Record<string, boolean>>({})
+  const [factureGroupeeLoading, setFactureGroupeeLoading] = useState(false)
+  const [factureGroupeeError, setFactureGroupeeError] = useState('')
   const [expandedResas, setExpandedResas] = useState<Record<string, boolean>>({})
 
   const filtered = dossiers.filter((d) =>
@@ -118,6 +123,34 @@ export default function DossiersClient({ initialDossiers, clients }: DossiersCli
 
   function handleEncaisserSuccess(id: string, newMontant: number) {
     setDossiers((prev) => prev.map((d) => d.id === id ? { ...d, montant_percu: newMontant } : d))
+  }
+
+  function openFactureGroupee(d: Record<string, unknown>) {
+    const resas = (d.reservations as Record<string, unknown>[]) ?? []
+    // Pré-sélectionner toutes les réservations non annulées
+    const sel: Record<string, boolean> = {}
+    resas.forEach((r) => {
+      if (r.statut !== 'cancelled') sel[r.id as string] = true
+    })
+    setFactureGroupeeSelected(sel)
+    setFactureGroupeeDossier(d)
+    setFactureGroupeeError('')
+  }
+
+  async function handleFactureGroupee() {
+    if (!factureGroupeeDossier) return
+    const ids = Object.entries(factureGroupeeSelected).filter(([, v]) => v).map(([k]) => k)
+    if (!ids.length) { setFactureGroupeeError('Sélectionnez au moins une réservation'); return }
+    setFactureGroupeeLoading(true)
+    setFactureGroupeeError('')
+    const result = await createFactureFromDossierAction(factureGroupeeDossier.id as string, ids)
+    setFactureGroupeeLoading(false)
+    if (result.error) {
+      setFactureGroupeeError(result.error)
+    } else {
+      setFactureGroupeeDossier(undefined)
+      window.location.href = '/facturation'
+    }
   }
 
   const TABS: { value: FilterTab; label: string }[] = [
@@ -184,6 +217,10 @@ export default function DossiersClient({ initialDossiers, clients }: DossiersCli
                     <span className={`rounded-md px-2 py-1 text-xs font-medium ${allPaid ? 'bg-[#C9A060]/10 text-[#C9A060] border border-[#C9A060]/30' : statutCfg.cls}`}>
                       {allPaid ? 'Soldé' : statutCfg.label}
                     </span>
+                    <button onClick={() => openFactureGroupee(d)}
+                      className="flex items-center gap-1.5 rounded-lg border border-[#C9A060]/30 px-2.5 py-1.5 text-xs text-[#C9A060] transition hover:bg-[#C9A060]/10">
+                      <FileText size={12} /> Facturer
+                    </button>
                     <button onClick={() => setEncaisserDossier(d)}
                       className="flex items-center gap-1.5 rounded-lg border border-green-900/50 px-2.5 py-1.5 text-xs text-green-400 transition hover:bg-green-950/20">
                       <Banknote size={12} /> Encaisser
@@ -283,6 +320,79 @@ export default function DossiersClient({ initialDossiers, clients }: DossiersCli
             onClose={() => setEncaisserDossier(undefined)}
             onSuccess={handleEncaisserSuccess}
           />
+        </Modal>
+      )}
+
+      {/* Modal facture groupée */}
+      {factureGroupeeDossier && (
+        <Modal
+          open={!!factureGroupeeDossier}
+          onClose={() => setFactureGroupeeDossier(undefined)}
+          title={`Facture groupée — ${factureGroupeeDossier.nom as string}`}
+          size="md"
+        >
+          <div className="space-y-4">
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Sélectionnez les réservations à inclure dans cette facture groupée :
+            </p>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {((factureGroupeeDossier.reservations as Record<string, unknown>[]) ?? []).map((r) => {
+                const id = r.id as string
+                const montant = (r.montant as number) ?? 0
+                const checked = !!factureGroupeeSelected[id]
+                return (
+                  <label
+                    key={id}
+                    className="flex items-center gap-3 rounded-lg p-2.5 cursor-pointer transition"
+                    style={{
+                      background: checked ? 'rgba(201,160,96,0.08)' : 'var(--bg-3)',
+                      border: `1px solid ${checked ? 'rgba(201,160,96,0.3)' : 'var(--border-soft)'}`,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => setFactureGroupeeSelected((prev) => ({ ...prev, [id]: e.target.checked }))}
+                      className="accent-[#C9A060]"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+                        {r.service as string ?? '—'}
+                        {!!(r.depart as string) && !!(r.destination as string) && (
+                          <span style={{ color: 'var(--text-dim)' }}> · {(r.depart as string).split(',')[0]} → {(r.destination as string).split(',')[0]}</span>
+                        )}
+                      </div>
+                      <div className="text-xs" style={{ color: 'var(--text-dim)' }}>{r.date as string ?? '—'}</div>
+                    </div>
+                    <span className="text-sm font-semibold text-green-400">
+                      €{Math.round(montant).toLocaleString('fr-FR')}
+                    </span>
+                  </label>
+                )
+              })}
+            </div>
+
+            {/* Total sélectionné */}
+            <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
+              <div>
+                <div className="text-xs" style={{ color: 'var(--text-dim)' }}>Total sélectionné</div>
+                <div className="text-xl font-semibold text-[#C9A060]">
+                  €{Math.round(
+                    ((factureGroupeeDossier.reservations as Record<string, unknown>[]) ?? [])
+                      .filter((r) => factureGroupeeSelected[r.id as string])
+                      .reduce((s, r) => s + ((r.montant as number) ?? 0), 0)
+                  ).toLocaleString('fr-FR')}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {factureGroupeeError && <p className="text-xs text-red-400">{factureGroupeeError}</p>}
+                <Button variant="ghost" size="sm" onClick={() => setFactureGroupeeDossier(undefined)}>Annuler</Button>
+                <Button size="sm" loading={factureGroupeeLoading} onClick={handleFactureGroupee}>
+                  <FileText size={13} /> Créer la facture
+                </Button>
+              </div>
+            </div>
+          </div>
         </Modal>
       )}
     </div>
