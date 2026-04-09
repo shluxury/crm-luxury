@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/actions/auth'
 import { cn } from '@/lib/utils'
+import { useTheme } from '@/components/providers/ThemeProvider'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -16,6 +17,8 @@ import {
   Settings,
   LogOut,
   Sparkles,
+  Sun,
+  Moon,
 } from 'lucide-react'
 
 const navItems = [
@@ -35,11 +38,21 @@ interface SidebarProps {
 
 export default function Sidebar({ userEmail }: SidebarProps) {
   const pathname = usePathname()
+  const { theme, toggleTheme } = useTheme()
 
   return (
-    <aside className="flex w-56 flex-shrink-0 flex-col border-r border-neutral-800 bg-neutral-900">
+    <aside
+      className="flex w-56 flex-shrink-0 flex-col"
+      style={{
+        background: 'var(--bg-2)',
+        borderRight: '1px solid var(--border)',
+      }}
+    >
       {/* Logo */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-neutral-800 px-4">
+      <div
+        className="flex h-14 items-center gap-2.5 px-4"
+        style={{ borderBottom: '1px solid var(--border)' }}
+      >
         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#C9A060]">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path
@@ -50,7 +63,7 @@ export default function Sidebar({ userEmail }: SidebarProps) {
             />
           </svg>
         </div>
-        <span className="text-sm font-semibold text-white">CRM Luxury</span>
+        <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>CRM Luxury</span>
       </div>
 
       {/* Navigation */}
@@ -65,9 +78,26 @@ export default function Sidebar({ userEmail }: SidebarProps) {
                   className={cn(
                     'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
                     active
-                      ? 'bg-[#C9A060]/10 text-[#C9A060]'
-                      : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
+                      ? 'text-[#C9A060]'
+                      : ''
                   )}
+                  style={
+                    active
+                      ? { background: 'rgba(201,160,96,0.10)' }
+                      : { color: 'var(--text-muted)' }
+                  }
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLAnchorElement).style.background = 'var(--bg-3)'
+                      ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--text)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLAnchorElement).style.background = ''
+                      ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-muted)'
+                    }
+                  }}
                 >
                   <Icon size={16} strokeWidth={1.75} />
                   {label}
@@ -78,15 +108,18 @@ export default function Sidebar({ userEmail }: SidebarProps) {
         </ul>
 
         {/* Assistant IA */}
-        <div className="mt-4 border-t border-neutral-800 pt-4">
+        <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border-soft)' }}>
           <Link
             href="/agent"
             className={cn(
               'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
-              pathname === '/agent'
-                ? 'bg-[#C9A060]/10 text-[#C9A060]'
-                : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
+              pathname === '/agent' ? 'text-[#C9A060]' : ''
             )}
+            style={
+              pathname === '/agent'
+                ? { background: 'rgba(201,160,96,0.10)' }
+                : { color: 'var(--text-muted)' }
+            }
           >
             <Sparkles size={16} strokeWidth={1.75} />
             Assistant IA
@@ -94,31 +127,59 @@ export default function Sidebar({ userEmail }: SidebarProps) {
         </div>
       </nav>
 
-      {/* Footer : user + settings + logout */}
-      <div className="border-t border-neutral-800 px-2 py-3">
+      {/* Footer : theme toggle + user + settings + logout */}
+      <div className="px-2 py-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
+        {/* Toggle thème */}
+        <button
+          onClick={toggleTheme}
+          className="mb-1 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors"
+          style={{ color: 'var(--text-dim)' }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-3)'
+            ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text)'
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = ''
+            ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-dim)'
+          }}
+          title={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+        >
+          {theme === 'dark' ? <Sun size={16} strokeWidth={1.75} /> : <Moon size={16} strokeWidth={1.75} />}
+          <span>{theme === 'dark' ? 'Mode clair' : 'Mode sombre'}</span>
+        </button>
+
         <Link
           href="/parametres"
           className={cn(
             'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors',
-            pathname === '/parametres'
-              ? 'bg-[#C9A060]/10 text-[#C9A060]'
-              : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
+            pathname === '/parametres' ? 'text-[#C9A060]' : ''
           )}
+          style={
+            pathname === '/parametres'
+              ? { background: 'rgba(201,160,96,0.10)' }
+              : { color: 'var(--text-muted)' }
+          }
         >
           <Settings size={16} strokeWidth={1.75} />
           Paramètres
         </Link>
 
         <div className="mt-1 flex items-center gap-2.5 px-3 py-2">
-          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-neutral-700 text-xs text-neutral-300">
+          <div
+            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs"
+            style={{ background: 'var(--bg-4)', color: 'var(--text-muted)' }}
+          >
             {userEmail.charAt(0).toUpperCase()}
           </div>
-          <span className="flex-1 truncate text-xs text-neutral-400">{userEmail}</span>
+          <span className="flex-1 truncate text-xs" style={{ color: 'var(--text-dim)' }}>{userEmail}</span>
           <form action={logout}>
             <button
               type="submit"
               title="Se déconnecter"
-              className="text-neutral-500 transition hover:text-red-400"
+              className="transition"
+              style={{ color: 'var(--text-dim)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#E05252')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-dim)')}
             >
               <LogOut size={14} />
             </button>

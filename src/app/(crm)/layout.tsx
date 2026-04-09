@@ -13,7 +13,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
 
   return (
     <SettingsProvider settings={settings}>
-      <div className="flex h-screen bg-neutral-950">
+      <div className="flex h-screen" style={{ background: 'var(--bg)' }}>
         <Sidebar userEmail={user.email ?? ''} />
         <main className="flex flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto p-6">{children}</div>

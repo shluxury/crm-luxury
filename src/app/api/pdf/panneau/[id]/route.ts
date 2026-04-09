@@ -133,7 +133,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   <button onclick="window.print()" style="background:#1a1a1a;color:#fff;border:none;padding:10px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Imprimer PDF (A4 paysage)</button>
 </div>
 
-<div class="company-logo">${esc(entite?.nom || 'SH Luxury')}</div>
+<div class="company-logo">${esc(entite?.nom || '')}</div>
 
 <div class="welcome">Bienvenue</div>
 <div class="client-name">${esc(displayName)}</div>

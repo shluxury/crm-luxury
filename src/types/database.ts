@@ -326,6 +326,16 @@ export interface EntiteConfig {
   actif: boolean
 }
 
+export interface EmailTemplateContent {
+  subject: string
+  html: string
+}
+
+export interface EmailTemplateByLang {
+  fr?: EmailTemplateContent
+  en?: EmailTemplateContent
+}
+
 export interface AppSettings {
   entites: EntiteConfig[]
   email: {
@@ -340,10 +350,10 @@ export interface AppSettings {
     stripe_secret_key: string
     stripe_publishable_key: string
   }
+  // Structure : email_templates[entiteId_ou_global][templateId][lang]
   email_templates: {
-    [templateId: string]: {
-      fr?: { subject: string; html: string }
-      en?: { subject: string; html: string }
+    [entiteOrGlobal: string]: {
+      [templateId: string]: EmailTemplateByLang
     }
   }
   localisation: {

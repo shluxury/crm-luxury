@@ -44,7 +44,11 @@ export async function sendEmailAction(params: SendEmailParams) {
     html = customHtml
   } else {
     // Vérifier si un modèle personnalisé existe dans les settings
-    const customTemplate = settings.email_templates?.[template]?.[lang]
+    // Chercher d'abord dans 'concierge' pour les types héli/jet/restaurant/location, sinon 'global'
+    const serviceType = String(reservation.service ?? '')
+    const isConcierge = ['helicoptere', 'jet_prive', 'restaurant', 'location_voiture'].includes(serviceType)
+    const scope = isConcierge ? 'concierge' : 'global'
+    const customTemplate = settings.email_templates?.[scope]?.[template]?.[lang]
     if (customTemplate?.html) {
       const vars: Record<string, string> = {
         prenom: String(client.prenom ?? ''),

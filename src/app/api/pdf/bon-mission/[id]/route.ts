@@ -110,7 +110,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 <div class="header">
   <div>
-    <div class="brand">${esc(entite?.nom || 'SH Luxury')}</div>
+    <div class="brand">${esc(entite?.nom || '')}</div>
     <div class="brand-sub">${esc(entite?.email || '')} ${entite?.tel ? '· ' + esc(entite.tel) : ''}</div>
   </div>
   <div class="doc-title">
