@@ -3,11 +3,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { getSettings } from './settings'
 
 const FactureSchema = z.object({
   numero: z.string().min(1, 'Numéro requis'),
   client_id: z.string().uuid().optional().nullable(),
-  entite: z.enum(['leader_limousines', 'leader_concierge_dubai']).default('leader_limousines'),
+  entite: z.string().default('entite_1'),
   montant: z.coerce.number().min(0).default(0),
   currency: z.enum(['EUR', 'USD', 'AED', 'GBP']).default('EUR'),
   mode_paiement: z.enum(['sumup', 'stripe', 'tpe', 'virement_fr', 'virement_dubai', 'especes', 'currenxie_us_usd', 'currenxie_uk_eur', 'currenxie_hk_hkd', 'currenxie_hk_eur']).optional().nullable(),
@@ -29,14 +30,19 @@ export async function getFactures() {
   return data
 }
 
-export async function getNextNumero(entite: string): Promise<string> {
+// Génère le prochain numéro de facture basé sur le nom de l'entité configurée
+export async function getNextNumero(entiteId: string): Promise<string> {
   const supabase = await createClient()
-  const prefix = entite === 'leader_limousines' ? 'LL' : 'LCD'
+  const settings = await getSettings()
+  const entite = settings.entites.find((e) => e.id === entiteId)
+  // Préfixe = 2 premières lettres du nom en majuscule, ou l'ID si nom vide
+  const nom = entite?.nom?.trim() || entiteId
+  const prefix = nom.replace(/[^A-Z0-9]/gi, '').slice(0, 3).toUpperCase() || 'FAC'
   const year = new Date().getFullYear()
   const { count } = await supabase
     .from('factures')
     .select('*', { count: 'exact', head: true })
-    .eq('entite', entite)
+    .eq('entite', entiteId)
     .like('numero', `${prefix}-${year}-%`)
   const seq = ((count ?? 0) + 1).toString().padStart(3, '0')
   return `${prefix}-${year}-${seq}`

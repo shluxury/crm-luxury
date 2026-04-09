@@ -6,6 +6,7 @@ import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay } from 'dat
 import { fr } from 'date-fns/locale'
 import Badge, { statutReservationBadge } from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
+import { useSettings } from '@/components/providers/SettingsProvider'
 
 const SERVICE_SHORT: Record<string, string> = {
   transfert_aeroport: 'Aéroport',
@@ -36,6 +37,8 @@ export default function PlanningClient({ reservations }: PlanningClientProps) {
     startOfWeek(new Date(), { weekStartsOn: 1 })
   )
   const [filterEntite, setFilterEntite] = useState('')
+  const { entites } = useSettings()
+  const entitesActives = entites.filter((e) => e.actif)
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i))
 
@@ -71,8 +74,9 @@ export default function PlanningClient({ reservations }: PlanningClientProps) {
           <select value={filterEntite} onChange={(e) => setFilterEntite(e.target.value)}
             className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white outline-none">
             <option value="">Toutes les entités</option>
-            <option value="leader_limousines">Leader Limousines</option>
-            <option value="leader_concierge_dubai">Leader Concierge Dubai</option>
+            {entitesActives.map((e) => (
+              <option key={e.id} value={e.id}>{e.nom || e.id}</option>
+            ))}
           </select>
           <div className="flex items-center gap-1">
             <button onClick={() => setCurrentWeekStart((w) => subWeeks(w, 1))}

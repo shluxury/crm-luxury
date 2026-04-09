@@ -9,11 +9,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import DossierForm from './DossierForm'
 import { deleteDossierAction } from '@/app/actions/dossiers'
 import type { Client } from '@/types/database'
-
-const ENTITE_LABELS: Record<string, string> = {
-  leader_limousines: 'LL',
-  leader_concierge_dubai: 'LCD',
-}
+import { useSettings } from '@/components/providers/SettingsProvider'
 
 const STATUT_VARIANTS: Record<string, { variant: 'success' | 'warning' | 'default'; label: string }> = {
   ouvert: { variant: 'success', label: 'Ouvert' },
@@ -28,6 +24,12 @@ interface DossiersClientProps {
 
 export default function DossiersClient({ initialDossiers, clients }: DossiersClientProps) {
   const [dossiers, setDossiers] = useState(initialDossiers)
+  const { entites } = useSettings()
+  const getEntiteLabel = (id: string) => {
+    const e = entites.find((x) => x.id === id)
+    if (!e?.nom) return id
+    return e.nom.replace(/[^A-Z]/g, '').slice(0, 3) || e.nom.slice(0, 3).toUpperCase()
+  }
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editDossier, setEditDossier] = useState<Record<string, unknown> | undefined>()
@@ -88,7 +90,7 @@ export default function DossiersClient({ initialDossiers, clients }: DossiersCli
                     )}
                   </div>
                   <span className="ml-2 shrink-0 rounded bg-neutral-800 px-1.5 py-0.5 text-xs font-medium text-neutral-400">
-                    {ENTITE_LABELS[d.entite as string] ?? d.entite as string}
+                    {getEntiteLabel(d.entite as string)}
                   </span>
                 </div>
 

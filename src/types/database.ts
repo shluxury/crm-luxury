@@ -265,6 +265,20 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['factures']['Insert']>
         Relationships: []
       }
+      settings: {
+        Row: {
+          id: string
+          cle: string
+          valeur: Json
+          updated_at: string
+        }
+        Insert: {
+          cle: string
+          valeur: Json
+        }
+        Update: Partial<Database['public']['Tables']['settings']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -282,7 +296,40 @@ export type Facture = Database['public']['Tables']['factures']['Row']
 
 // Enums métier
 export type ServiceType = 'transfert_aeroport' | 'transfert_simple' | 'mise_a_disposition' | 'helicoptere' | 'jet_prive' | 'restaurant' | 'location_voiture'
-export type Entite = 'leader_limousines' | 'leader_concierge_dubai'
+export type Entite = string  // dynamique, configuré dans Paramètres
 export type Currency = 'EUR' | 'USD' | 'AED' | 'GBP'
 export type StatutReservation = 'devis' | 'confirmed' | 'paid' | 'part_paid' | 'completed' | 'cancelled'
 export type StatutFacture = 'draft' | 'sent' | 'paid'
+
+// Settings — configuration du CRM
+export interface EntiteConfig {
+  id: string
+  nom: string
+  pays: string
+  devise: Currency
+  adresse: string
+  cp: string
+  ville: string
+  tel: string
+  email: string
+  siret: string
+  tva: string
+  iban: string
+  actif: boolean
+}
+
+export interface AppSettings {
+  entites: EntiteConfig[]
+  email: {
+    brevo_key: string
+    auto_send_client: boolean
+    auto_send_chauffeur: boolean
+    lang_defaut: string
+  }
+  integrations: {
+    aviationstack_key: string
+    google_maps_key: string
+    stripe_secret_key: string
+    stripe_publishable_key: string
+  }
+}

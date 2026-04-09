@@ -10,6 +10,7 @@ import Textarea from '@/components/ui/Textarea'
 import Button from '@/components/ui/Button'
 import { createReservationAction, updateReservationAction } from '@/app/actions/reservations'
 import type { Client, Chauffeur, Partenaire } from '@/types/database'
+import { useEntiteOptions, useDeviseDefaut } from '@/components/providers/SettingsProvider'
 
 const SERVICES = [
   { value: 'transfert_aeroport', label: 'Transfert aéroport' },
@@ -28,7 +29,7 @@ const VEHICULES = [
 
 const schema = z.object({
   service: z.enum(['transfert_aeroport', 'transfert_simple', 'mise_a_disposition', 'helicoptere', 'jet_prive', 'restaurant', 'location_voiture']),
-  entite: z.enum(['leader_limousines', 'leader_concierge_dubai']).default('leader_limousines'),
+  entite: z.string().default('entite_1'),
   date: z.string().min(1, 'Date requise'),
   heure: z.string().min(1, 'Heure requise'),
   client_id: z.string().min(1, 'Client requis'),
@@ -65,12 +66,14 @@ interface ReservationFormProps {
 
 export default function ReservationForm({ reservation, clients, chauffeurs, partenaires, onSuccess }: ReservationFormProps) {
   const [serverError, setServerError] = useState('')
+  const entiteOptions = useEntiteOptions()
+  const deviseDefaut = useDeviseDefaut()
 
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: reservation ? {
       service: reservation.service as FormData['service'],
-      entite: reservation.entite as FormData['entite'],
+      entite: reservation.entite as string,
       date: reservation.date as string,
       heure: (reservation.heure as string)?.slice(0, 5),
       client_id: reservation.client_id as string,
@@ -95,8 +98,8 @@ export default function ReservationForm({ reservation, clients, chauffeurs, part
       allergies: (reservation.allergies as string) ?? '',
     } : {
       service: 'transfert_aeroport',
-      entite: 'leader_limousines',
-      currency: 'EUR',
+      entite: entiteOptions[0]?.value ?? 'entite_1',
+      currency: deviseDefaut,
       statut: 'devis',
       pax: 1,
       bagages: 0,
@@ -132,10 +135,7 @@ export default function ReservationForm({ reservation, clients, chauffeurs, part
       {/* Service + Entité */}
       <div className="grid grid-cols-2 gap-3">
         <Select label="Service *" {...register('service')} options={SERVICES} error={errors.service?.message} />
-        <Select label="Entité" {...register('entite')} options={[
-          { value: 'leader_limousines', label: 'Leader Limousines' },
-          { value: 'leader_concierge_dubai', label: 'Leader Concierge Dubai' },
-        ]} />
+        <Select label="Entité" {...register('entite')} options={entiteOptions} />
       </div>
 
       {/* Date + Heure */}

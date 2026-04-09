@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 const ReservationSchema = z.object({
   service: z.enum(['transfert_aeroport', 'transfert_simple', 'mise_a_disposition', 'helicoptere', 'jet_prive', 'restaurant', 'location_voiture']),
-  entite: z.enum(['leader_limousines', 'leader_concierge_dubai']).default('leader_limousines'),
+  entite: z.string().default('entite_1'),
   date: z.string().min(1, 'Date requise'),
   heure: z.string().min(1, 'Heure requise'),
   client_id: z.string().uuid('Client requis'),

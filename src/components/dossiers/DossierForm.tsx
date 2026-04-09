@@ -10,11 +10,12 @@ import Textarea from '@/components/ui/Textarea'
 import Button from '@/components/ui/Button'
 import { createDossierAction, updateDossierAction } from '@/app/actions/dossiers'
 import type { Client } from '@/types/database'
+import { useEntiteOptions } from '@/components/providers/SettingsProvider'
 
 const schema = z.object({
   nom: z.string().min(1, 'Nom requis'),
   client_id: z.string().optional().nullable(),
-  entite: z.enum(['leader_limousines', 'leader_concierge_dubai']).default('leader_limousines'),
+  entite: z.string().default('entite_1'),
   statut: z.enum(['ouvert', 'ferme', 'archive']).default('ouvert'),
   notes: z.string().optional().default(''),
   montant_percu: z.coerce.number().min(0).default(0),
@@ -30,18 +31,19 @@ interface DossierFormProps {
 
 export default function DossierForm({ dossier, clients, onSuccess }: DossierFormProps) {
   const [serverError, setServerError] = useState('')
+  const entiteOptions = useEntiteOptions()
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: dossier ? {
       nom: dossier.nom as string,
       client_id: (dossier.client_id as string) ?? null,
-      entite: dossier.entite as FormData['entite'],
+      entite: dossier.entite as string,
       statut: dossier.statut as FormData['statut'],
       notes: (dossier.notes as string) ?? '',
       montant_percu: dossier.montant_percu as number,
     } : {
-      entite: 'leader_limousines',
+      entite: entiteOptions[0]?.value ?? 'entite_1',
       statut: 'ouvert',
       montant_percu: 0,
     },
@@ -63,10 +65,7 @@ export default function DossierForm({ dossier, clients, onSuccess }: DossierForm
       <Input label="Nom du dossier *" {...register('nom')} error={errors.nom?.message} placeholder="Grand Prix Monaco 2025" />
 
       <div className="grid grid-cols-2 gap-3">
-        <Select label="Entité" {...register('entite')} options={[
-          { value: 'leader_limousines', label: 'Leader Limousines' },
-          { value: 'leader_concierge_dubai', label: 'Leader Concierge Dubai' },
-        ]} />
+        <Select label="Entité" {...register('entite')} options={entiteOptions} />
         <Select label="Statut" {...register('statut')} options={[
           { value: 'ouvert', label: 'Ouvert' },
           { value: 'ferme', label: 'Fermé' },

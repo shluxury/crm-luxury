@@ -7,7 +7,7 @@ import { z } from 'zod'
 const DossierSchema = z.object({
   nom: z.string().min(1, 'Nom requis'),
   client_id: z.string().uuid().optional().nullable(),
-  entite: z.enum(['leader_limousines', 'leader_concierge_dubai']).default('leader_limousines'),
+  entite: z.string().default('entite_1'),
   statut: z.enum(['ouvert', 'ferme', 'archive']).default('ouvert'),
   notes: z.string().optional().default(''),
   montant_percu: z.coerce.number().min(0).default(0),

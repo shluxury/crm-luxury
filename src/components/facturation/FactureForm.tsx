@@ -10,11 +10,12 @@ import Textarea from '@/components/ui/Textarea'
 import Button from '@/components/ui/Button'
 import { createFactureAction, updateFactureAction, getNextNumero } from '@/app/actions/factures'
 import type { Client } from '@/types/database'
+import { useEntiteOptions, useDeviseDefaut } from '@/components/providers/SettingsProvider'
 
 const schema = z.object({
   numero: z.string().min(1, 'Numéro requis'),
   client_id: z.string().optional().nullable(),
-  entite: z.enum(['leader_limousines', 'leader_concierge_dubai']).default('leader_limousines'),
+  entite: z.string().default('entite_1'),
   montant: z.coerce.number().min(0).default(0),
   currency: z.enum(['EUR', 'USD', 'AED', 'GBP']).default('EUR'),
   mode_paiement: z.enum(['sumup', 'stripe', 'tpe', 'virement_fr', 'virement_dubai', 'especes', 'currenxie_us_usd', 'currenxie_uk_eur', 'currenxie_hk_hkd', 'currenxie_hk_eur']).optional().nullable(),
@@ -32,21 +33,23 @@ interface FactureFormProps {
 
 export default function FactureForm({ facture, clients, onSuccess }: FactureFormProps) {
   const [serverError, setServerError] = useState('')
+  const entiteOptions = useEntiteOptions()
+  const deviseDefaut = useDeviseDefaut()
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: facture ? {
       numero: facture.numero as string,
       client_id: (facture.client_id as string) ?? null,
-      entite: facture.entite as FormData['entite'],
+      entite: facture.entite as string,
       montant: facture.montant as number,
       currency: facture.currency as FormData['currency'],
       mode_paiement: (facture.mode_paiement as FormData['mode_paiement']) ?? null,
       statut: facture.statut as FormData['statut'],
       notes: (facture.notes as string) ?? '',
     } : {
-      entite: 'leader_limousines',
-      currency: 'EUR',
+      entite: entiteOptions[0]?.value ?? 'entite_1',
+      currency: deviseDefaut,
       statut: 'draft',
       montant: 0,
     },
@@ -54,9 +57,10 @@ export default function FactureForm({ facture, clients, onSuccess }: FactureForm
 
   useEffect(() => {
     if (!facture) {
-      getNextNumero('leader_limousines').then((num) => setValue('numero', num))
+      const defaultEntite = entiteOptions[0]?.value ?? 'entite_1'
+      getNextNumero(defaultEntite).then((num) => setValue('numero', num))
     }
-  }, [facture, setValue])
+  }, [facture, setValue, entiteOptions])
 
   async function onSubmit(data: FormData) {
     setServerError('')
@@ -77,10 +81,7 @@ export default function FactureForm({ facture, clients, onSuccess }: FactureForm
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <Input label="Numéro de facture *" {...register('numero')} error={errors.numero?.message} placeholder="LL-2025-001" />
-        <Select label="Entité" {...register('entite')} options={[
-          { value: 'leader_limousines', label: 'Leader Limousines' },
-          { value: 'leader_concierge_dubai', label: 'Leader Concierge Dubai' },
-        ]} />
+        <Select label="Entité" {...register('entite')} options={entiteOptions} />
       </div>
 
       <Select label="Client" {...register('client_id')} placeholder="Aucun client associé"
