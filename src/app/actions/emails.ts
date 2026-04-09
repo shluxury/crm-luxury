@@ -116,6 +116,90 @@ export async function sendEmailAction(params: SendEmailParams) {
   return { success: true }
 }
 
+export async function sendFactureEmailAction(factureId: string, toEmail: string, toName: string, customMessage?: string) {
+  const [settings, supabase] = await Promise.all([getSettings(), createClient()])
+
+  const brevoKey = settings.email.brevo_key
+  if (!brevoKey) return { error: 'Clé Brevo non configurée dans les Paramètres > Intégrations' }
+
+  const { data: factureRaw, error: factureError } = await supabase
+    .from('factures')
+    .select('*, client:clients(*)')
+    .eq('id', factureId)
+    .single()
+  if (factureError || !factureRaw) return { error: 'Facture introuvable' }
+
+  const facture = factureRaw as unknown as Record<string, unknown>
+  const client = facture.client as Record<string, unknown> | null
+  const entiteConfig = settings.entites.find((e) => e.id === (facture.entite as string)) ?? settings.entites[0]
+
+  const pdfUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/api/pdf/facture/${factureId}`
+  const clientName = client ? `${client.prenom} ${client.nom}` : toName
+
+  const currency = (facture.currency as string) ?? 'EUR'
+  const montant = Math.round((facture.montant as number) ?? 0).toLocaleString('fr-FR')
+  const numero = (facture.numero as string) ?? ''
+
+  const subject = `Votre facture ${numero} - ${montant} ${currency}`
+
+  const messageHtml = customMessage
+    ? `<p style="font-size:14px;color:#333;margin-bottom:16px;">${customMessage.replace(/\n/g, '<br>')}</p>`
+    : ''
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#f9f9f9;padding:32px 0;">
+      <div style="background:#fff;border-radius:8px;overflow:hidden;border:1px solid #e0e0e0;">
+        <div style="background:#1a1a2e;padding:24px 32px;">
+          <p style="color:#C9A060;font-size:18px;font-weight:600;margin:0;">${entiteConfig?.nom ?? ''}</p>
+        </div>
+        <div style="padding:28px 32px;">
+          <p style="font-size:15px;color:#333;margin:0 0 8px;">Cher(e) ${clientName},</p>
+          ${messageHtml}
+          <p style="font-size:14px;color:#555;margin:0 0 20px;">Veuillez trouver ci-joint votre facture <strong>${numero}</strong> d'un montant de <strong>${montant} ${currency}</strong>.</p>
+          <div style="background:#f5f5f5;border-radius:6px;padding:16px;margin-bottom:20px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="font-size:12px;color:#888;padding:4px 0;">Numéro</td><td style="font-size:12px;color:#333;font-weight:600;text-align:right;">${numero}</td></tr>
+              <tr><td style="font-size:12px;color:#888;padding:4px 0;">Montant</td><td style="font-size:14px;color:#1a1a2e;font-weight:700;text-align:right;">${montant} ${currency}</td></tr>
+            </table>
+          </div>
+          <a href="${pdfUrl}" style="display:inline-block;background:#C9A060;color:#fff;text-decoration:none;padding:12px 24px;border-radius:6px;font-size:13px;font-weight:600;">
+            Télécharger la facture PDF
+          </a>
+          <p style="font-size:12px;color:#888;margin-top:20px;">Cordialement,<br>${entiteConfig?.nom ?? ''}</p>
+        </div>
+      </div>
+    </div>
+  `
+
+  const senderEmail = entiteConfig?.email || 'noreply@example.com'
+  const senderName = entiteConfig?.nom || 'Conciergerie'
+
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: { 'api-key': brevoKey, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email: toEmail, name: toName }],
+      subject,
+      htmlContent: html,
+    }),
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    return { error: `Erreur Brevo: ${(err as Record<string, unknown>).message ?? response.statusText}` }
+  }
+
+  // Passer le statut à 'sent' si encore en 'draft'
+  const supabase2 = await createClient()
+  const factureStatut = (facture.statut as string) ?? ''
+  if (factureStatut === 'draft') {
+    await supabase2.from('factures').update({ statut: 'sent' }).eq('id', factureId)
+  }
+
+  return { success: true, newStatut: factureStatut === 'draft' ? 'sent' : factureStatut }
+}
+
 export async function getEmailPreview(template: EmailTemplate, reservationId: string, lang: 'fr' | 'en' = 'fr') {
   const [settings, supabase] = await Promise.all([getSettings(), createClient()])
 

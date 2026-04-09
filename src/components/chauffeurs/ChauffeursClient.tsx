@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Car, Phone, Mail, Eye } from 'lucide-react'
+import { Plus, Pencil, Trash2, Car, Phone, Mail, Eye, CheckCircle2, Clock, XCircle } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
@@ -13,9 +13,9 @@ import type { Chauffeur } from '@/types/database'
 type ChauffeurWithStats = Chauffeur & { missions_mois: number }
 
 const STATUT_CONFIG = {
-  disponible: { label: 'Disponible', color: '#48c78e', dot: 'bg-green-400' },
-  en_mission: { label: 'En mission', color: '#fbbf24', dot: 'bg-amber-400' },
-  indisponible: { label: 'Congé / Off', color: '#6b7280', dot: 'bg-neutral-500' },
+  disponible:   { label: 'Disponible',  color: '#48c78e', dot: 'bg-green-400',   Icon: CheckCircle2 },
+  en_mission:   { label: 'En mission',  color: '#fbbf24', dot: 'bg-amber-400',   Icon: Clock },
+  indisponible: { label: 'Congé / Off', color: '#6b7280', dot: 'bg-neutral-500', Icon: XCircle },
 }
 const STATUT_NEXT: Record<string, string> = {
   disponible: 'en_mission',
@@ -89,15 +89,17 @@ export default function ChauffeursClient({ initialChauffeurs }: { initialChauffe
                   </div>
                 </div>
 
-                {/* Statut toggle */}
+                {/* Statut toggle - cycle: disponible → en_mission → indisponible → disponible */}
                 <button
                   onClick={() => toggleStatut(c)}
                   disabled={togglingId === c.id}
-                  className="mb-3 flex w-full items-center gap-2 rounded-lg border border-neutral-800 px-2 py-1.5 text-xs transition hover:border-neutral-700"
-                  title="Cliquer pour changer le statut"
+                  className="mb-3 flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-xs transition hover:opacity-80"
+                  style={{ borderColor: statut.color + '40', background: statut.color + '10' }}
+                  title={`Statut actuel : ${statut.label} — Cliquer pour changer`}
                 >
-                  <div className={`w-2 h-2 rounded-full ${statut.dot} flex-shrink-0`} />
-                  <span style={{ color: statut.color }}>{statut.label}</span>
+                  <statut.Icon size={13} style={{ color: statut.color }} className="flex-shrink-0" />
+                  <span style={{ color: statut.color }} className="flex-1 text-left">{statut.label}</span>
+                  {togglingId === c.id && <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />}
                 </button>
 
                 {/* Infos */}

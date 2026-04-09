@@ -138,3 +138,27 @@ export async function deleteReservationAction(id: string) {
   revalidatePath('/reservations')
   return { success: true }
 }
+
+export async function addNoteReservationAction(id: string, note: string) {
+  if (!note.trim()) return { error: 'Note vide' }
+
+  const supabase = await createClient()
+  // Lire les notes actuelles
+  const { data, error: fetchError } = await supabase
+    .from('reservations')
+    .select('notes')
+    .eq('id', id)
+    .single()
+  if (fetchError) return { error: fetchError.message }
+
+  const now = new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  const newEntry = `[${now}] ${note.trim()}`
+  const currentNotes = (data?.notes as string) ?? ''
+  const updatedNotes = currentNotes ? `${newEntry}\n${currentNotes}` : newEntry
+
+  const { error } = await supabase.from('reservations').update({ notes: updatedNotes }).eq('id', id)
+  if (error) return { error: error.message }
+
+  revalidatePath('/reservations')
+  return { success: true, notes: updatedNotes }
+}

@@ -5,8 +5,10 @@ import { Plus, Trash2, FileText, Mail, Printer } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
+import Textarea from '@/components/ui/Textarea'
 import FactureForm from './FactureForm'
 import { deleteFactureAction, updateFactureStatutAction } from '@/app/actions/factures'
+import { sendFactureEmailAction } from '@/app/actions/emails'
 import { useSettings } from '@/components/providers/SettingsProvider'
 import type { Client } from '@/types/database'
 
@@ -30,7 +32,10 @@ export default function FacturationClient({ initialFactures, clients }: Facturat
   const [filterTab, setFilterTab] = useState<FilterTab>('all')
   const [modalOpen, setModalOpen] = useState(false)
   const [editFacture, setEditFacture] = useState<Record<string, unknown> | undefined>()
-  const [emailFactureId, setEmailFactureId] = useState<string | null>(null)
+  const [emailFacture, setEmailFacture] = useState<{ id: string; email: string; nom: string } | null>(null)
+  const [emailMessage, setEmailMessage] = useState('')
+  const [emailSending, setEmailSending] = useState(false)
+  const [emailError, setEmailError] = useState('')
 
   const filtered = factures.filter((f) =>
     filterTab === 'all' || f.statut === filterTab
@@ -54,6 +59,31 @@ export default function FacturationClient({ initialFactures, clients }: Facturat
   function openCreate() { setEditFacture(undefined); setModalOpen(true) }
   function openEdit(f: Record<string, unknown>) { setEditFacture(f); setModalOpen(true) }
   function handleSuccess() { setModalOpen(false); window.location.reload() }
+
+  function openEmailModal(f: Record<string, unknown>) {
+    const client = f.client as Record<string, string> | null
+    if (!client?.email) return
+    setEmailFacture({ id: f.id as string, email: client.email, nom: `${client.prenom} ${client.nom}` })
+    setEmailMessage('')
+    setEmailError('')
+  }
+
+  async function handleSendEmail() {
+    if (!emailFacture) return
+    setEmailSending(true)
+    setEmailError('')
+    const result = await sendFactureEmailAction(emailFacture.id, emailFacture.email, emailFacture.nom, emailMessage || undefined)
+    setEmailSending(false)
+    if (result?.error) {
+      setEmailError(result.error)
+    } else {
+      // Mettre à jour le statut localement si changé
+      if (result.newStatut) {
+        setFactures((prev) => prev.map((f) => f.id === emailFacture.id ? { ...f, statut: result.newStatut } : f))
+      }
+      setEmailFacture(null)
+    }
+  }
 
   async function handleDelete(id: string) {
     if (!confirm('Supprimer cette facture ?')) return
@@ -173,7 +203,7 @@ export default function FacturationClient({ initialFactures, clients }: Facturat
                           <span className="flex items-center gap-1"><Printer size={11} /> PDF</span>
                         </a>
                         {!!(client?.email) && (
-                          <button onClick={() => setEmailFactureId(f.id as string)}
+                          <button onClick={() => openEmailModal(f)}
                             className="rounded-lg border border-neutral-800 p-1.5 text-neutral-400 transition hover:border-neutral-700 hover:text-sky-400"
                             title="Envoyer par email">
                             <Mail size={11} />
@@ -202,21 +232,37 @@ export default function FacturationClient({ initialFactures, clients }: Facturat
         <FactureForm facture={editFacture} clients={clients} onSuccess={handleSuccess} />
       </Modal>
 
-      {/* Email modal placeholder - shown when emailFactureId is set */}
-      {!!emailFactureId && (
-        <Modal open={!!emailFactureId} onClose={() => setEmailFactureId(null)}
-          title="Envoyer la facture" size="sm">
-          <div className="space-y-4 py-2">
-            <p className="text-sm text-neutral-400">
-              La facture sera envoyée par email au client associé.
-            </p>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => setEmailFactureId(null)} className="flex-1">Annuler</Button>
-              <a href={`/api/pdf/facture/${emailFactureId}`} target="_blank" rel="noreferrer"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#C9A060] px-4 py-2 text-sm font-medium text-black transition hover:bg-[#b8904e]"
-                onClick={() => setEmailFactureId(null)}>
-                <FileText size={14} /> Ouvrir PDF
-              </a>
+      {/* Modal envoi email facture */}
+      {!!emailFacture && (
+        <Modal open={!!emailFacture} onClose={() => setEmailFacture(null)}
+          title="Envoyer la facture par email" size="sm">
+          <div className="space-y-4 py-1">
+            <div className="rounded-lg p-3" style={{ background: 'var(--bg-3)', border: '1px solid var(--border)' }}>
+              <p className="text-xs text-neutral-500 mb-1">Destinataire</p>
+              <p className="text-sm font-medium text-white">{emailFacture.nom}</p>
+              <p className="text-xs text-neutral-400">{emailFacture.email}</p>
+            </div>
+            <div className="rounded-lg p-3" style={{ background: 'var(--bg-3)', border: '1px solid var(--border)' }}>
+              <p className="text-xs text-neutral-500 mb-1">Pièce jointe</p>
+              <div className="flex items-center gap-2">
+                <FileText size={12} className="text-[#C9A060]" />
+                <span className="text-xs text-neutral-300">Facture PDF (lien sécurisé)</span>
+              </div>
+            </div>
+            <Textarea
+              label="Message personnalisé (optionnel)"
+              value={emailMessage}
+              onChange={(e) => setEmailMessage(e.target.value)}
+              placeholder="Ajoutez un message..."
+              rows={3}
+            />
+            {!!emailError && <p className="text-xs text-red-400">{emailError}</p>}
+            <div className="flex gap-2 pt-1">
+              <Button variant="ghost" onClick={() => setEmailFacture(null)} className="flex-1">Annuler</Button>
+              <Button onClick={handleSendEmail} disabled={emailSending} className="flex-1">
+                <Mail size={14} />
+                {emailSending ? 'Envoi...' : 'Envoyer'}
+              </Button>
             </div>
           </div>
         </Modal>

@@ -8,8 +8,9 @@ import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import Badge, { statutReservationBadge } from '@/components/ui/Badge'
 import ReservationForm from './ReservationForm'
-import { deleteReservationAction, duplicateReservationAction, updateFactStatutAction, updateStatutAction } from '@/app/actions/reservations'
+import { deleteReservationAction, duplicateReservationAction, updateFactStatutAction, updateStatutAction, addNoteReservationAction } from '@/app/actions/reservations'
 import { createFactureFromReservationAction } from '@/app/actions/factures'
+import { createStripePaymentLinkAction } from '@/app/actions/paiements'
 import type { Client, Chauffeur, Partenaire } from '@/types/database'
 import { useSettings } from '@/components/providers/SettingsProvider'
 
@@ -121,6 +122,7 @@ function ActionsDropdown({ r, onEdit, onDelete, onDuplicate, onEmail, onFacturer
   onFacturer: () => void
 }) {
   const [open, setOpen] = useState(false)
+  const [stripeLoading, setStripeLoading] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -158,6 +160,22 @@ function ActionsDropdown({ r, onEdit, onDelete, onDuplicate, onEmail, onFacturer
           <button onClick={() => { onEmail(); setOpen(false) }}
             className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-neutral-300 transition hover:bg-neutral-800">
             <Mail size={12} /> Envoyer email
+          </button>
+          <button
+            disabled={stripeLoading}
+            onClick={async () => {
+              setStripeLoading(true)
+              const result = await createStripePaymentLinkAction(r.id as string)
+              setStripeLoading(false)
+              if (result.url) {
+                window.open(result.url, '_blank')
+              } else {
+                alert(result.error ?? 'Erreur Stripe')
+              }
+              setOpen(false)
+            }}
+            className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-neutral-300 transition hover:bg-neutral-800 disabled:opacity-50">
+            <Receipt size={12} /> {stripeLoading ? 'Génération...' : 'Lien Stripe'}
           </button>
           <div className="my-1 border-t border-neutral-800" />
           <button onClick={() => { onEdit(); setOpen(false) }}
@@ -219,6 +237,8 @@ export default function ReservationsClient({ initialReservations, clients, chauf
   const [emailResa, setEmailResa] = useState<Record<string, unknown> | undefined>()
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [noteInputs, setNoteInputs] = useState<Record<string, string>>({})
+  const [noteSubmitting, setNoteSubmitting] = useState<string | null>(null)
   const { entites } = useSettings()
   const entitesActives = entites.filter((e) => e.actif)
   const todayStr = new Date().toISOString().slice(0, 10)
@@ -300,6 +320,18 @@ export default function ReservationsClient({ initialReservations, clients, chauf
     const next = cycle[current] ?? 'non_facture'
     await updateFactStatutAction(id, next)
     setReservations((prev) => prev.map((r) => r.id === id ? { ...r, fact_statut: next } : r))
+  }
+
+  async function handleAddNote(id: string) {
+    const note = noteInputs[id]?.trim()
+    if (!note) return
+    setNoteSubmitting(id)
+    const result = await addNoteReservationAction(id, note)
+    if (result?.success && result.notes) {
+      setReservations((prev) => prev.map((r) => r.id === id ? { ...r, notes: result.notes } : r))
+      setNoteInputs((prev) => ({ ...prev, [id]: '' }))
+    }
+    setNoteSubmitting(null)
   }
 
   const FILTER_TABS: { value: FilterTab; label: string }[] = [
@@ -561,12 +593,40 @@ export default function ReservationsClient({ initialReservations, clients, chauf
                                 <div className="text-sm font-medium text-white mt-0.5">{r.ref_partenaire as string}</div>
                               </div>
                             )}
-                            {!!r.notes && (
-                              <div className="flex-1 min-w-[200px]">
-                                <span className="text-neutral-500">Notes</span>
-                                <div className="text-sm text-neutral-300 italic mt-0.5">{r.notes as string}</div>
+                            {/* Notes internes avec ajout inline */}
+                            <div className="flex-1 min-w-[250px]">
+                              <span className="text-neutral-500">Notes internes</span>
+                              {!!(r.notes as string) && (
+                                <div className="mt-1 space-y-1 max-h-32 overflow-y-auto pr-1">
+                                  {(r.notes as string).split('\n').filter(Boolean).map((line, i) => {
+                                    const isTimestamped = /^\[\d{2}\/\d{2}\/\d{4}/.test(line)
+                                    return (
+                                      <div key={i} className={`text-xs ${isTimestamped ? 'text-neutral-400' : 'text-neutral-300 italic'}`}>
+                                        {isTimestamped ? (
+                                          <><span className="text-neutral-600 font-mono">{line.match(/^\[([^\]]+)\]/)?.[1]}</span> <span className="text-neutral-300">{line.replace(/^\[[^\]]+\]\s*/, '')}</span></>
+                                        ) : line}
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              )}
+                              <div className="flex gap-1 mt-2">
+                                <input
+                                  value={noteInputs[r.id as string] ?? ''}
+                                  onChange={(e) => setNoteInputs((prev) => ({ ...prev, [r.id as string]: e.target.value }))}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleAddNote(r.id as string) } }}
+                                  placeholder="Ajouter une note..."
+                                  className="flex-1 rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-white placeholder-neutral-600 outline-none focus:border-neutral-600"
+                                />
+                                <button
+                                  onClick={() => void handleAddNote(r.id as string)}
+                                  disabled={!noteInputs[r.id as string]?.trim() || noteSubmitting === (r.id as string)}
+                                  className="rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-[#C9A060] transition hover:border-[#C9A060]/50 disabled:opacity-40"
+                                >
+                                  {noteSubmitting === (r.id as string) ? '…' : '+'}
+                                </button>
                               </div>
-                            )}
+                            </div>
                             {!!r.num_vol && (
                               <div>
                                 <span className="text-neutral-500">Vol</span>
