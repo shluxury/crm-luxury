@@ -29,19 +29,29 @@ export default function Modal({ open, onClose, title, children, size = 'md' }: M
       {/* Panel */}
       <div
         className={cn(
-          'relative flex max-h-[90vh] w-full flex-col rounded-xl border border-neutral-800 bg-neutral-900 shadow-2xl',
+          'relative flex max-h-[90vh] w-full flex-col rounded-xl shadow-2xl',
           size === 'sm' && 'max-w-sm',
           size === 'md' && 'max-w-lg',
           size === 'lg' && 'max-w-2xl',
           size === 'xl' && 'max-w-4xl',
         )}
+        style={{ background: 'var(--bg-2)', border: '1px solid var(--border)' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-neutral-800 px-5 py-4">
-          <h2 className="text-sm font-semibold text-white">{title}</h2>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-neutral-400 transition hover:bg-neutral-800 hover:text-white"
+            className="rounded-lg p-1 transition"
+            style={{ color: 'var(--text-muted)' }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-3)'
+              ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text)'
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = ''
+              ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'
+            }}
           >
             <X size={16} />
           </button>

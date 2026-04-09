@@ -10,7 +10,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', loading, children, disabled, ...props }, ref) => {
+  ({ className, variant = 'primary', size = 'md', loading, children, disabled, style, ...props }, ref) => {
+    const variantStyle: React.CSSProperties =
+      variant === 'secondary'
+        ? { border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text)' }
+        : variant === 'ghost'
+        ? { color: 'var(--text-muted)', background: 'transparent' }
+        : {}
+
     return (
       <button
         ref={ref}
@@ -20,11 +27,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           size === 'sm' && 'px-3 py-1.5 text-xs',
           size === 'md' && 'px-4 py-2 text-sm',
           variant === 'primary' && 'bg-[#C9A060] text-neutral-950 hover:bg-[#E0BC84]',
-          variant === 'secondary' && 'border border-neutral-700 bg-neutral-800 text-neutral-200 hover:bg-neutral-700',
           variant === 'danger' && 'border border-red-800 bg-red-950/50 text-red-400 hover:bg-red-900/50',
-          variant === 'ghost' && 'text-neutral-400 hover:bg-neutral-800 hover:text-white',
           className
         )}
+        style={{ ...variantStyle, ...style }}
         {...props}
       >
         {loading && (

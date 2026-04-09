@@ -9,11 +9,11 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, error, options, placeholder, className, id, ...props }, ref) => {
+  ({ label, error, options, placeholder, className, id, style, ...props }, ref) => {
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={id} className="text-xs font-medium text-neutral-300">
+          <label htmlFor={id} className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
             {label}
           </label>
         )}
@@ -21,15 +21,21 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={id}
           className={cn(
-            'w-full rounded-lg border bg-neutral-900 px-3 py-2 text-sm text-white outline-none transition',
-            error ? 'border-red-700 focus:border-red-500' : 'border-neutral-700 focus:border-[#C9A060] focus:ring-1 focus:ring-[#C9A060]',
+            'w-full rounded-lg px-3 py-2 text-sm outline-none transition',
+            error ? 'border-red-700 focus:border-red-500' : '',
             className
           )}
+          style={{
+            background: 'var(--bg-3)',
+            border: error ? '1px solid #E05252' : '1px solid var(--border)',
+            color: 'var(--text)',
+            ...style,
+          }}
           {...props}
         >
           {placeholder && <option value="">{placeholder}</option>}
           {options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
+            <option key={opt.value} value={opt.value} style={{ background: 'var(--bg-3)', color: 'var(--text)' }}>
               {opt.label}
             </option>
           ))}

@@ -1,15 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, Plug, Mail, Eye, EyeOff, CheckCircle, FileText, Globe } from 'lucide-react'
+import { Building2, Plug, Mail, Eye, EyeOff, CheckCircle, FileText, Globe, Palette } from 'lucide-react'
 import { updateSettingAction } from '@/app/actions/settings'
 import type { AppSettings, EntiteConfig, Currency } from '@/types/database'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import EmailTemplatesTab from './EmailTemplatesTab'
+import { useTheme } from '@/components/providers/ThemeProvider'
 
 const TABS = [
+  { id: 'apparence', label: 'Apparence', icon: Palette },
   { id: 'entites', label: 'Entités', icon: Building2 },
   { id: 'localisation', label: 'Localisation', icon: Globe },
   { id: 'integrations', label: 'Intégrations', icon: Plug },
@@ -19,17 +21,28 @@ const TABS = [
 
 type TabId = typeof TABS[number]['id']
 
+const ACCENT_COLORS = [
+  { value: '#C9A060', name: 'Or' },
+  { value: '#A8A8A8', name: 'Argent' },
+  { value: '#4A7FA5', name: 'Bleu marine' },
+  { value: '#2E7D52', name: 'Vert' },
+  { value: '#8B5A8B', name: 'Mauve' },
+  { value: '#C0392B', name: 'Rouge' },
+]
+
 interface ParametresClientProps {
   settings: AppSettings
 }
 
 // --- Entité Form ---
-function EntiteForm({ entite, onChange }: { entite: EntiteConfig; onChange: (e: EntiteConfig) => void }) {
+function EntiteForm({ entite, index, onChange }: { entite: EntiteConfig; index: number; onChange: (e: EntiteConfig) => void }) {
   const set = (field: keyof EntiteConfig, value: unknown) => onChange({ ...entite, [field]: value })
   return (
     <div className={`rounded-xl border p-4 space-y-4 transition ${entite.actif ? 'border-neutral-700 bg-neutral-900' : 'border-neutral-800 bg-neutral-950 opacity-60'}`}>
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white">Entité {entite.id === 'entite_1' ? '1' : '2'}</h3>
+        <h3 className="text-sm font-semibold text-white">
+          {entite.nom ? entite.nom : `Entité ${index + 1}`}
+        </h3>
         <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-400">
           <div className="relative">
             <input type="checkbox" checked={entite.actif} onChange={(e) => set('actif', e.target.checked)} className="sr-only" />
@@ -97,7 +110,9 @@ function ApiKeyInput({ label, value, onChange, placeholder }: { label: string; v
 
 // --- Composant principal ---
 export default function ParametresClient({ settings }: ParametresClientProps) {
-  const [tab, setTab] = useState<TabId>('entites')
+  const [tab, setTab] = useState<TabId>('apparence')
+  const { theme, toggleTheme } = useTheme()
+  const [accentColor, setAccentColor] = useState('#C9A060')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -134,6 +149,13 @@ export default function ParametresClient({ settings }: ParametresClientProps) {
   }
 
   const isTemplateTab = tab === 'templates'
+  const isApparenceTab = tab === 'apparence'
+
+  function applyAccent(color: string) {
+    setAccentColor(color)
+    document.documentElement.style.setProperty('--gold', color)
+    localStorage.setItem('crm-accent', color)
+  }
 
   return (
     <div className={isTemplateTab ? 'max-w-5xl' : 'max-w-2xl'}>
@@ -158,13 +180,85 @@ export default function ParametresClient({ settings }: ParametresClientProps) {
       {/* Contenu onglets */}
       <div className="space-y-4">
 
+        {tab === 'apparence' && (
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-5 space-y-6">
+            {/* Thème */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500 mb-3">Thème</p>
+              <div className="flex gap-3">
+                {/* Carte Dark */}
+                <button
+                  onClick={() => { if (theme === 'light') toggleTheme() }}
+                  className="flex-shrink-0 rounded-xl overflow-hidden transition"
+                  style={{
+                    border: theme === 'dark' ? '2px solid #C9A060' : '2px solid transparent',
+                    width: 130,
+                    outline: 'none',
+                  }}
+                >
+                  <div className="h-16 flex items-center justify-center gap-2" style={{ background: '#0F0F0F' }}>
+                    <div className="w-5 h-5 rounded-full bg-[#C9A060]" />
+                    <div className="w-10 h-2 rounded bg-[#C9A060] opacity-70" />
+                  </div>
+                  <div className="p-2 flex justify-between items-center" style={{ background: '#1A1A1A' }}>
+                    <span className="text-xs font-medium text-neutral-200">Nuit</span>
+                    {theme === 'dark' && <span className="text-[#C9A060] text-xs">✓</span>}
+                  </div>
+                </button>
+                {/* Carte Light */}
+                <button
+                  onClick={() => { if (theme === 'dark') toggleTheme() }}
+                  className="flex-shrink-0 rounded-xl overflow-hidden transition"
+                  style={{
+                    border: theme === 'light' ? '2px solid #C9A060' : '2px solid transparent',
+                    width: 130,
+                    outline: 'none',
+                  }}
+                >
+                  <div className="h-16 flex items-center justify-center gap-2" style={{ background: '#F5F3EF' }}>
+                    <div className="w-5 h-5 rounded-full bg-[#C9A060]" />
+                    <div className="w-10 h-2 rounded bg-[#C9A060] opacity-70" />
+                  </div>
+                  <div className="p-2 flex justify-between items-center" style={{ background: '#FFFFFF' }}>
+                    <span className="text-xs font-medium text-neutral-800">Jour</span>
+                    {theme === 'light' && <span className="text-[#C9A060] text-xs">✓</span>}
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Couleur d'accent */}
+            <div className="pt-4 border-t border-neutral-800">
+              <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500 mb-3">Couleur d&apos;accent</p>
+              <div className="flex gap-2 flex-wrap">
+                {ACCENT_COLORS.map(({ value, name }) => (
+                  <button
+                    key={value}
+                    onClick={() => applyAccent(value)}
+                    title={name}
+                    className="rounded-lg transition hover:scale-110"
+                    style={{
+                      width: 40, height: 40,
+                      background: value,
+                      border: accentColor === value ? '3px solid white' : '3px solid transparent',
+                      boxShadow: accentColor === value ? `0 0 0 2px ${value}` : 'none',
+                    }}
+                  />
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-neutral-600">L&apos;accent or (#C9A060) est la valeur recommandée pour un rendu premium.</p>
+            </div>
+          </div>
+        )}
+
         {tab === 'entites' && (
           <>
             <p className="text-xs text-neutral-500">Configurez les sociétés qui émettent les réservations et factures. Les entités actives apparaissent dans tous les formulaires.</p>
-            {entites.map((entite) => (
+            {entites.map((entite, idx) => (
               <EntiteForm
                 key={entite.id}
                 entite={entite}
+                index={idx}
                 onChange={(updated) => setEntites((prev) => prev.map((e) => e.id === updated.id ? updated : e))}
               />
             ))}
@@ -271,8 +365,8 @@ export default function ParametresClient({ settings }: ParametresClientProps) {
           </div>
         )}
 
-        {/* Bouton sauvegarde — masqué sur l'onglet templates (il a son propre bouton) */}
-        {!isTemplateTab && (
+        {/* Bouton sauvegarde — masqué sur les onglets templates et apparence */}
+        {!isTemplateTab && !isApparenceTab && (
           <div className="flex items-center justify-end gap-3 pt-2">
             {saved && (
               <span className="flex items-center gap-1.5 text-sm text-green-400">

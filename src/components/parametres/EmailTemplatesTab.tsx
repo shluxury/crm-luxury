@@ -8,38 +8,34 @@ import Button from '@/components/ui/Button'
 
 type Lang = 'fr' | 'en'
 
-// ─── Templates par scope ────────────────────────────────────────
+// ─── Templates communs (scope "global") ─────────────────────────
 const TEMPLATES_GLOBAL = [
-  { id: 'confirmation', label: 'Confirmation réservation', desc: 'Envoyé au client après confirmation', category: 'client' },
-  { id: 'paiement',     label: 'Confirmation paiement',    desc: 'Envoyé après réception du paiement', category: 'client' },
-  { id: 'rappel',       label: 'Rappel J-1',               desc: 'Rappel envoyé la veille de la mission', category: 'client' },
-  { id: 'devis',        label: 'Envoi devis',              desc: 'Proposition tarifaire au client', category: 'client' },
-  { id: 'facture',      label: 'Envoi facture',            desc: 'Envoi de la facture au client', category: 'client' },
-  { id: 'stripe_link',  label: 'Lien de paiement',         desc: 'Lien Stripe pour paiement en ligne', category: 'client' },
-  { id: 'postservice',  label: 'Après prestation',         desc: 'Email de satisfaction post-mission', category: 'client' },
-  { id: 'chauffeur_brief', label: 'Brief mission',         desc: 'Brief envoyé au chauffeur assigné', category: 'chauffeur' },
-  { id: 'bon_mission',  label: 'Bon de mission',           desc: 'Bon de mission VTC au chauffeur', category: 'chauffeur' },
+  { id: 'confirmation',  label: 'Confirmation réservation', desc: 'Envoyé au client après confirmation',    category: 'client' },
+  { id: 'paiement',      label: 'Confirmation paiement',    desc: 'Envoyé après réception du paiement',     category: 'client' },
+  { id: 'rappel',        label: 'Rappel J-1',               desc: 'Rappel envoyé la veille de la mission',  category: 'client' },
+  { id: 'devis',         label: 'Envoi devis',              desc: 'Proposition tarifaire au client',        category: 'client' },
+  { id: 'facture',       label: 'Envoi facture',            desc: 'Envoi de la facture au client',          category: 'client' },
+  { id: 'stripe_link',   label: 'Lien de paiement',         desc: 'Lien Stripe pour paiement en ligne',    category: 'client' },
+  { id: 'postservice',   label: 'Après prestation',         desc: 'Email de satisfaction post-mission',     category: 'client' },
+  { id: 'chauffeur_brief', label: 'Brief mission',          desc: 'Brief envoyé au chauffeur assigné',      category: 'chauffeur' },
+  { id: 'bon_mission',   label: 'Bon de mission',           desc: 'Bon de mission VTC au chauffeur',        category: 'chauffeur' },
 ]
 
+// ─── Templates spéciaux services conciergerie ───────────────────
 const TEMPLATES_CONCIERGE = [
-  { id: 'helico_confirmation', label: 'Confirmation vol hélico', desc: 'Confirmation transfert hélicoptère', category: 'helicoptere' },
-  { id: 'helico_devis',        label: 'Devis hélicoptère',       desc: 'Proposition tarifaire vol héliporté', category: 'helicoptere' },
-  { id: 'helico_paiement',     label: 'Paiement hélico',         desc: 'Confirmation paiement — vol confirmé', category: 'helicoptere' },
-  { id: 'jet_confirmation',    label: 'Confirmation charter',    desc: 'Confirmation vol jet privé', category: 'jet' },
-  { id: 'jet_devis',           label: 'Devis charter',           desc: 'Proposition affrètement jet', category: 'jet' },
-  { id: 'jet_paiement',        label: 'Paiement charter',        desc: 'Confirmation paiement — charter confirmé', category: 'jet' },
-  { id: 'resto_confirmation',  label: 'Confirmation restaurant', desc: 'Confirmation table au restaurant', category: 'restaurant' },
-  { id: 'resto_devis',         label: 'Proposition restaurant',  desc: 'Suggestion avec détails restaurant', category: 'restaurant' },
-  { id: 'resto_paiement',      label: 'Paiement restaurant',     desc: 'Paiement reçu — table confirmée', category: 'restaurant' },
-  { id: 'car_confirmation',    label: 'Confirmation location',   desc: 'Confirmation véhicule de luxe', category: 'location' },
-  { id: 'car_devis',           label: 'Devis location',          desc: 'Proposition véhicule & tarif', category: 'location' },
-  { id: 'car_paiement',        label: 'Paiement location',       desc: 'Paiement reçu — location confirmée', category: 'location' },
+  { id: 'helico_confirmation', label: 'Confirmation vol hélico',   desc: 'Confirmation transfert hélicoptère',   category: 'helicoptere' },
+  { id: 'helico_devis',        label: 'Devis hélicoptère',         desc: 'Proposition tarifaire vol héliporté',  category: 'helicoptere' },
+  { id: 'helico_paiement',     label: 'Paiement hélico',           desc: 'Confirmation paiement — vol confirmé', category: 'helicoptere' },
+  { id: 'jet_confirmation',    label: 'Confirmation charter',      desc: 'Confirmation vol jet privé',           category: 'jet' },
+  { id: 'jet_devis',           label: 'Devis charter',             desc: 'Proposition affrètement jet',          category: 'jet' },
+  { id: 'jet_paiement',        label: 'Paiement charter',          desc: 'Confirmation paiement — charter confirmé', category: 'jet' },
+  { id: 'resto_confirmation',  label: 'Confirmation restaurant',   desc: 'Confirmation table au restaurant',     category: 'restaurant' },
+  { id: 'resto_devis',         label: 'Proposition restaurant',    desc: 'Suggestion avec détails restaurant',   category: 'restaurant' },
+  { id: 'resto_paiement',      label: 'Paiement restaurant',       desc: 'Paiement reçu — table confirmée',      category: 'restaurant' },
+  { id: 'car_confirmation',    label: 'Confirmation location',     desc: 'Confirmation véhicule de luxe',        category: 'location' },
+  { id: 'car_devis',           label: 'Devis location',            desc: 'Proposition véhicule & tarif',         category: 'location' },
+  { id: 'car_paiement',        label: 'Paiement location',         desc: 'Paiement reçu — location confirmée',  category: 'location' },
 ]
-
-const SCOPE_LABELS: Record<string, string> = {
-  global:    'Leader Limousines (global)',
-  concierge: 'Leader Concierge Dubai',
-}
 
 const CATEGORY_LABELS: Record<string, string> = {
   client:      'Clients',
@@ -51,37 +47,48 @@ const CATEGORY_LABELS: Record<string, string> = {
 }
 
 const VARIABLES = [
-  { key: '{{prenom}}',      desc: 'Prénom du client' },
-  { key: '{{nom}}',         desc: 'Nom du client' },
-  { key: '{{service}}',     desc: 'Type de service' },
-  { key: '{{date}}',        desc: 'Date de la réservation' },
-  { key: '{{heure}}',       desc: 'Heure de prise en charge' },
-  { key: '{{depart}}',      desc: 'Lieu de départ' },
-  { key: '{{destination}}', desc: 'Destination' },
-  { key: '{{num_vol}}',     desc: 'Numéro de vol' },
-  { key: '{{vehicule}}',    desc: 'Véhicule assigné' },
-  { key: '{{pax}}',         desc: 'Nombre de passagers' },
-  { key: '{{montant}}',     desc: 'Montant de la prestation' },
-  { key: '{{currency}}',    desc: 'Devise (EUR, USD…)' },
-  { key: '{{entite_nom}}',  desc: 'Nom de la société' },
-  { key: '{{entite_tel}}',  desc: 'Téléphone société' },
-  { key: '{{entite_email}}',desc: 'Email société' },
-  { key: '{{notes}}',       desc: 'Notes de réservation' },
-  { key: '{{chauffeur}}',   desc: 'Nom du chauffeur' },
-  { key: '{{appareil}}',    desc: 'Appareil/Hélico/Jet' },
-  { key: '{{stripe_url}}',  desc: 'Lien de paiement Stripe' },
+  { key: '{{prenom}}',       desc: 'Prénom du client' },
+  { key: '{{nom}}',          desc: 'Nom du client' },
+  { key: '{{service}}',      desc: 'Type de service' },
+  { key: '{{date}}',         desc: 'Date de la réservation' },
+  { key: '{{heure}}',        desc: 'Heure de prise en charge' },
+  { key: '{{depart}}',       desc: 'Lieu de départ' },
+  { key: '{{destination}}',  desc: 'Destination' },
+  { key: '{{num_vol}}',      desc: 'Numéro de vol' },
+  { key: '{{vehicule}}',     desc: 'Véhicule assigné' },
+  { key: '{{pax}}',          desc: 'Nombre de passagers' },
+  { key: '{{montant}}',      desc: 'Montant de la prestation' },
+  { key: '{{currency}}',     desc: 'Devise (EUR, USD…)' },
+  { key: '{{entite_nom}}',   desc: 'Nom de la société' },
+  { key: '{{entite_tel}}',   desc: 'Téléphone société' },
+  { key: '{{entite_email}}', desc: 'Email société' },
+  { key: '{{notes}}',        desc: 'Notes de réservation' },
+  { key: '{{chauffeur}}',    desc: 'Nom du chauffeur' },
+  { key: '{{appareil}}',     desc: 'Appareil / Hélico / Jet' },
+  { key: '{{stripe_url}}',   desc: 'Lien de paiement Stripe' },
 ]
 
+// Données de prévisualisation — génériques, sans nom de société hardcodé
 const SAMPLE_DATA: Record<string, string> = {
-  prenom: 'Alexandre', nom: 'Martin', service: 'Transfert aéroport',
-  date: 'lundi 15 janvier 2025', heure: '08:30',
-  depart: 'Hôtel Hermitage, Monaco', destination: 'Aéroport Nice Côte d\'Azur',
-  num_vol: 'AF1234', vehicule: 'Mercedes Classe S', pax: '2',
-  montant: '450', currency: 'EUR', entite_nom: 'Leader Limousines',
-  entite_tel: '+33 6 00 00 00 00', entite_email: 'contact@leaderlimousines.com',
-  notes: 'Client VIP — accueil avec panneau nominatif',
-  chauffeur: 'Michel Dupont', appareil: 'Airbus H130',
-  stripe_url: 'https://pay.stripe.com/xxxx',
+  prenom:        'Alexandre',
+  nom:           'Martin',
+  service:       'Transfert aéroport',
+  date:          'lundi 15 janvier 2025',
+  heure:         '08:30',
+  depart:        'Hôtel des Arts',
+  destination:   'Aéroport International',
+  num_vol:       'AF1234',
+  vehicule:      'Mercedes Classe S',
+  pax:           '2',
+  montant:       '450',
+  currency:      'EUR',
+  entite_nom:    'Ma Société',
+  entite_tel:    '+XX X XX XX XX XX',
+  entite_email:  'contact@masociete.com',
+  notes:         'Client VIP — accueil avec panneau nominatif',
+  chauffeur:     'Prénom Nom',
+  appareil:      'Airbus H130',
+  stripe_url:    'https://pay.stripe.com/xxxx',
 }
 
 function substituteVars(template: string, sample: Record<string, string>) {
@@ -93,7 +100,12 @@ interface EmailTemplatesTabProps {
 }
 
 export default function EmailTemplatesTab({ settings }: EmailTemplatesTabProps) {
-  const [scope, setScope] = useState<'global' | 'concierge'>('global')
+  // Construire les scopes dynamiquement depuis les entités actives + scope "global"
+  const activeEntities = settings.entites.filter((e) => e.actif)
+
+  // Scope = 'global' ou un id d'entité (ex: 'entite_1', 'entite_2')
+  // Pour les entités, on affiche les templates communs + concierge (tous services)
+  const [scope, setScope] = useState<string>('global')
   const [selectedTemplate, setSelectedTemplate] = useState('confirmation')
   const [lang, setLang] = useState<Lang>('fr')
   const [viewMode, setViewMode] = useState<'code' | 'preview'>('preview')
@@ -112,7 +124,9 @@ export default function EmailTemplatesTab({ settings }: EmailTemplatesTabProps) 
 
   const current = getTemplate(scope, selectedTemplate, lang)
 
-  const allTemplates = scope === 'global' ? TEMPLATES_GLOBAL : TEMPLATES_CONCIERGE
+  // Tous les templates disponibles pour le scope courant
+  const allTemplates = scope === 'global' ? TEMPLATES_GLOBAL : [...TEMPLATES_GLOBAL, ...TEMPLATES_CONCIERGE]
+
   const currentTpl = allTemplates.find((t) => t.id === selectedTemplate)
 
   function setField(field: 'subject' | 'html', value: string) {
@@ -144,10 +158,10 @@ export default function EmailTemplatesTab({ settings }: EmailTemplatesTabProps) 
     })
   }
 
-  function handleScopeChange(s: 'global' | 'concierge') {
+  function handleScopeChange(s: string) {
     setScope(s)
-    const firstTpl = s === 'global' ? TEMPLATES_GLOBAL[0] : TEMPLATES_CONCIERGE[0]
-    setSelectedTemplate(firstTpl.id)
+    // Revenir sur "confirmation" qui est toujours disponible
+    setSelectedTemplate('confirmation')
   }
 
   async function handleSave() {
@@ -176,24 +190,56 @@ export default function EmailTemplatesTab({ settings }: EmailTemplatesTabProps) 
     byCategory[t.category].push(t as (typeof TEMPLATES_GLOBAL)[number])
   }
 
+  // Label du scope courant
+  const scopeLabel = scope === 'global'
+    ? 'Commun'
+    : (activeEntities.find((e) => e.id === scope)?.nom || scope)
+
   return (
     <div className="space-y-4">
-      {/* Sélecteur entité */}
-      <div className="flex gap-2">
-        {(['global', 'concierge'] as const).map((s) => (
+      {/* Sélecteur de scope (commun + entités actives) */}
+      <div className="space-y-1">
+        <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
+          Les modèles <strong style={{ color: 'var(--text-muted)' }}>Commun</strong> s&apos;appliquent à toutes les entités.
+          Les modèles par entité permettent de personnaliser l&apos;identité visuelle pour chaque société.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {/* Scope commun */}
           <button
-            key={s}
-            onClick={() => handleScopeChange(s)}
+            onClick={() => handleScopeChange('global')}
             className="rounded-lg px-4 py-2 text-sm font-medium transition"
             style={
-              scope === s
+              scope === 'global'
                 ? { background: 'rgba(201,160,96,0.15)', color: '#C9A060', border: '1px solid rgba(201,160,96,0.4)' }
                 : { background: 'var(--bg-3)', color: 'var(--text-muted)', border: '1px solid var(--border-soft)' }
             }
           >
-            {SCOPE_LABELS[s]}
+            Commun
           </button>
-        ))}
+
+          {/* Un onglet par entité active */}
+          {activeEntities.map((entite) => (
+            <button
+              key={entite.id}
+              onClick={() => handleScopeChange(entite.id)}
+              className="rounded-lg px-4 py-2 text-sm font-medium transition"
+              style={
+                scope === entite.id
+                  ? { background: 'rgba(201,160,96,0.15)', color: '#C9A060', border: '1px solid rgba(201,160,96,0.4)' }
+                  : { background: 'var(--bg-3)', color: 'var(--text-muted)', border: '1px solid var(--border-soft)' }
+              }
+            >
+              {entite.nom || entite.id}
+            </button>
+          ))}
+
+          {/* Message si aucune entité configurée */}
+          {activeEntities.length === 0 && (
+            <p className="text-xs py-2" style={{ color: 'var(--text-dim)' }}>
+              Configurez vos entités dans l&apos;onglet Entités pour personnaliser les modèles par société.
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-4 min-h-[600px]">
@@ -240,7 +286,14 @@ export default function EmailTemplatesTab({ settings }: EmailTemplatesTabProps) 
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{currentTpl?.label}</h3>
-              <p className="text-xs" style={{ color: 'var(--text-dim)' }}>{currentTpl?.desc}</p>
+              <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
+                {currentTpl?.desc}
+                {scope !== 'global' && (
+                  <span className="ml-2 font-medium" style={{ color: '#C9A060' }}>
+                    — {scopeLabel}
+                  </span>
+                )}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               {/* Lang toggle */}

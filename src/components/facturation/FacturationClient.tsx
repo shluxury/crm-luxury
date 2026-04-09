@@ -7,6 +7,7 @@ import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import FactureForm from './FactureForm'
 import { deleteFactureAction, updateFactureStatutAction } from '@/app/actions/factures'
+import { useSettings } from '@/components/providers/SettingsProvider'
 import type { Client } from '@/types/database'
 
 type FilterTab = 'all' | 'draft' | 'sent' | 'paid' | 'retard'
@@ -18,17 +19,13 @@ const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string; 
   retard: { label: 'En retard',  color: '#e05a5a', bg: 'rgba(224,90,90,0.12)',  border: 'rgba(224,90,90,0.3)' },
 }
 
-const ENTITE_LABELS: Record<string, string> = {
-  entite_1: 'LL',
-  entite_2: 'LC',
-}
-
 interface FacturationClientProps {
   initialFactures: Record<string, unknown>[]
   clients: Client[]
 }
 
 export default function FacturationClient({ initialFactures, clients }: FacturationClientProps) {
+  const { entites } = useSettings()
   const [factures, setFactures] = useState(initialFactures)
   const [filterTab, setFilterTab] = useState<FilterTab>('all')
   const [modalOpen, setModalOpen] = useState(false)
@@ -129,7 +126,7 @@ export default function FacturationClient({ initialFactures, clients }: Facturat
                 const serviceLabel = reservation?.service
                   ? reservation.service.charAt(0).toUpperCase() + reservation.service.slice(1).replace(/_/g, ' ')
                   : '—'
-                const entiteLabel = ENTITE_LABELS[f.entite as string] ?? (f.entite as string)
+                const entiteLabel = entites.find((e) => e.id === (f.entite as string))?.nom || (f.entite as string)
                 return (
                   <tr key={f.id as string} style={{ background: rowBg }}
                     className="border-b border-neutral-800/50 transition hover:bg-neutral-900/30">

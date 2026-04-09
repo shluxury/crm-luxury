@@ -74,7 +74,7 @@ export default function PartenaireForm({ partenaire, onSuccess }: PartenaireForm
       <div className="grid grid-cols-2 gap-3">
         <Input label="Nom société *" {...register('nom')} error={errors.nom?.message} className="col-span-2" />
         <Input label="Nom du contact" {...register('contact')} />
-        <Input label="Zone géographique" {...register('zone')} placeholder="Paris, IDF, Monaco..." />
+        <Input label="Zone géographique" {...register('zone')} placeholder="Ex: Paris, Île-de-France..." />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <Input label="Téléphone" {...register('tel')} />
@@ -98,12 +98,12 @@ export default function PartenaireForm({ partenaire, onSuccess }: PartenaireForm
           <Input label="CP" {...register('cp')} />
           <Input label="Ville" {...register('ville')} className="col-span-2" />
         </div>
-        <Input label="Pays" {...register('pays')} defaultValue="France" />
+        <Input label="Pays" {...register('pays')} />
       </div>
 
       <div className="flex items-center gap-2">
         <input type="checkbox" id="has_monaco" {...register('has_monaco')} className="accent-[#C9A060]" />
-        <label htmlFor="has_monaco" className="text-xs text-neutral-300">Opérateur Monaco</label>
+        <label htmlFor="has_monaco" className="text-xs text-neutral-300">Opérateur zone spéciale</label>
       </div>
 
       <Textarea label="Notes" {...register('notes')} placeholder="Tarifs négociés, remarques..." />

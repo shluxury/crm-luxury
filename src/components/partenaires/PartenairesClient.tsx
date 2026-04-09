@@ -65,7 +65,7 @@ export default function PartenairesClient({ initialPartenaires, statsMap }: Part
         ))}
         <button onClick={() => setFilterMC((v) => !v)}
           className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${filterMC ? 'border-[#C9A060] text-[#C9A060]' : 'border-neutral-800 text-neutral-400 hover:border-neutral-700'}`}>
-          🇲🇨 Vignette MC
+          Zone spéciale
         </button>
         <div className="flex flex-1 min-w-[200px] items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 ml-1">
           <Search size={13} className="text-neutral-500 flex-shrink-0" />
@@ -98,7 +98,7 @@ export default function PartenairesClient({ initialPartenaires, statsMap }: Part
                         <span className="text-base font-medium text-white">{p.nom}</span>
                         {p.has_monaco && (
                           <span className="rounded px-1.5 py-0.5 text-[10px] font-medium" style={{ background: 'rgba(201,168,76,0.12)', color: '#C9A060', border: '1px solid rgba(201,168,76,0.3)' }}>
-                            🇲🇨 MC
+                            Zone spéciale
                           </span>
                         )}
                       </div>
@@ -109,7 +109,7 @@ export default function PartenairesClient({ initialPartenaires, statsMap }: Part
                         </div>
                       )}
                       {p.has_monaco && p.mc_vehicules?.length > 0 && (
-                        <div className="mt-1 text-xs text-neutral-500">Véhicules MC : {p.mc_vehicules.join(', ')}</div>
+                        <div className="mt-1 text-xs text-neutral-500">Véhicules zone spéciale : {p.mc_vehicules.join(', ')}</div>
                       )}
                     </div>
                   </div>
