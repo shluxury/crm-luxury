@@ -1,8 +1,7 @@
-export default function Page() {
-  return (
-    <div>
-      <h1 className="text-xl font-semibold text-white capitalize">partenaires</h1>
-      <p className="mt-2 text-sm text-neutral-400">Module en construction...</p>
-    </div>
-  )
+import { getPartenaires } from "@/app/actions/partenaires"
+import PartenairesClient from "@/components/partenaires/PartenairesClient"
+
+export default async function PartenairesPage() {
+  const partenaires = await getPartenaires()
+  return <PartenairesClient initialPartenaires={partenaires} />
 }

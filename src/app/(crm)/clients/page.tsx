@@ -1,8 +1,7 @@
-export default function Page() {
-  return (
-    <div>
-      <h1 className="text-xl font-semibold text-white capitalize">clients</h1>
-      <p className="mt-2 text-sm text-neutral-400">Module en construction...</p>
-    </div>
-  )
+import { getClients } from '@/app/actions/clients'
+import ClientsClient from '@/components/clients/ClientsClient'
+
+export default async function ClientsPage() {
+  const clients = await getClients()
+  return <ClientsClient initialClients={clients} />
 }
