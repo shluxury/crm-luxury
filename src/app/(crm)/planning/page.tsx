@@ -1,8 +1,7 @@
-export default function Page() {
-  return (
-    <div>
-      <h1 className="text-xl font-semibold text-white capitalize">planning</h1>
-      <p className="mt-2 text-sm text-neutral-400">Module en construction...</p>
-    </div>
-  )
+import { getReservations } from '@/app/actions/reservations'
+import PlanningClient from '@/components/planning/PlanningClient'
+
+export default async function Page() {
+  const reservations = await getReservations()
+  return <PlanningClient reservations={reservations as Record<string, unknown>[]} />
 }

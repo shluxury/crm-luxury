@@ -1,8 +1,8 @@
-export default function Page() {
-  return (
-    <div>
-      <h1 className="text-xl font-semibold text-white capitalize">facturation</h1>
-      <p className="mt-2 text-sm text-neutral-400">Module en construction...</p>
-    </div>
-  )
+import { getFactures } from '@/app/actions/factures'
+import { getClients } from '@/app/actions/clients'
+import FacturationClient from '@/components/facturation/FacturationClient'
+
+export default async function Page() {
+  const [factures, clients] = await Promise.all([getFactures(), getClients()])
+  return <FacturationClient initialFactures={factures as Record<string, unknown>[]} clients={clients} />
 }

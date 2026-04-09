@@ -1,8 +1,8 @@
-export default function Page() {
-  return (
-    <div>
-      <h1 className="text-xl font-semibold text-white capitalize">dossiers</h1>
-      <p className="mt-2 text-sm text-neutral-400">Module en construction...</p>
-    </div>
-  )
+import { getDossiers } from '@/app/actions/dossiers'
+import { getClients } from '@/app/actions/clients'
+import DossiersClient from '@/components/dossiers/DossiersClient'
+
+export default async function Page() {
+  const [dossiers, clients] = await Promise.all([getDossiers(), getClients()])
+  return <DossiersClient initialDossiers={dossiers as Record<string, unknown>[]} clients={clients} />
 }
