@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Users, Search, Mail, CalendarPlus } from 'lucide-react'
+import { Plus, Pencil, Trash2, Users, Search, Mail, CalendarPlus, Eye } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import ClientForm from './ClientForm'
+import FicheClientModal from './FicheClientModal'
+import TagBadge from '@/components/ui/TagBadge'
 import { deleteClientAction } from '@/app/actions/clients'
 import type { ClientWithStats } from '@/app/actions/clients'
 import type { Client } from '@/types/database'
@@ -22,6 +24,7 @@ export default function ClientsClient({ initialClients }: ClientsClientProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [editClient, setEditClient] = useState<Client | undefined>()
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [ficheClient, setFicheClient] = useState<ClientWithStats | null>(null)
 
   // Tous les tags existants
   const allTags = [...new Set(clients.flatMap((c) => c.tags))].sort()
@@ -53,7 +56,12 @@ export default function ClientsClient({ initialClients }: ClientsClientProps) {
   function openEdit(client: ClientWithStats) {
     // On mappe vers le type Client pour le formulaire
     setEditClient(client as unknown as Client)
+    setFicheClient(null)
     setModalOpen(true)
+  }
+
+  function openFiche(client: ClientWithStats) {
+    setFicheClient(client)
   }
 
   function handleSuccess() {
@@ -165,7 +173,11 @@ export default function ClientsClient({ initialClients }: ClientsClientProps) {
               {filtered.map((client) => {
                 const contact = getContactDisplay(client)
                 return (
-                  <tr key={client.id} className="group bg-neutral-950 transition hover:bg-neutral-900">
+                  <tr
+                    key={client.id}
+                    className="group bg-neutral-950 transition hover:bg-neutral-900 cursor-pointer"
+                    onClick={() => openFiche(client)}
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div
@@ -206,15 +218,20 @@ export default function ClientsClient({ initialClients }: ClientsClientProps) {
                       {client.tags.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {client.tags.map((tag) => (
-                            <span key={tag} className="rounded px-1.5 py-0.5 text-[10px] bg-neutral-800 text-neutral-400 border border-neutral-700">
-                              {tag}
-                            </span>
+                            <TagBadge key={tag} tag={tag} />
                           ))}
                         </div>
                       ) : <span className="text-neutral-600 text-xs">—</span>}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100">
+                        <button
+                          onClick={() => openFiche(client)}
+                          className="rounded-lg p-1.5 text-neutral-400 transition hover:bg-neutral-800 hover:text-[#C9A060]"
+                          title="Voir la fiche"
+                        >
+                          <Eye size={13} />
+                        </button>
                         <button
                           onClick={() => {
                             // Ouvrir la page réservation avec ce client pré-sélectionné
@@ -259,7 +276,7 @@ export default function ClientsClient({ initialClients }: ClientsClientProps) {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal création/édition */}
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -268,6 +285,18 @@ export default function ClientsClient({ initialClients }: ClientsClientProps) {
       >
         <ClientForm client={editClient} onSuccess={handleSuccess} />
       </Modal>
+
+      {/* Fiche client latérale */}
+      {ficheClient && (
+        <FicheClientModal
+          client={ficheClient}
+          onClose={() => setFicheClient(null)}
+          onEdit={(c) => {
+            setFicheClient(null)
+            openEdit(c)
+          }}
+        />
+      )}
     </div>
   )
 }

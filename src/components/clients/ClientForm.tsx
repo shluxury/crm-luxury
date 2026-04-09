@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { X } from 'lucide-react'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import Textarea from '@/components/ui/Textarea'
 import Button from '@/components/ui/Button'
+import TagBadge from '@/components/ui/TagBadge'
 import { createClientAction, updateClientAction } from '@/app/actions/clients'
 import type { Client } from '@/types/database'
 
@@ -135,12 +135,7 @@ export default function ClientForm({ client, onSuccess }: ClientFormProps) {
         <p className="mb-1.5 text-xs font-medium text-neutral-400">Tags</p>
         <div className="flex flex-wrap gap-1.5 mb-2">
           {tags.map((tag) => (
-            <span key={tag} className="flex items-center gap-1 rounded-full border border-[#C9A060]/30 bg-[#C9A060]/10 px-2.5 py-0.5 text-xs text-[#C9A060]">
-              {tag}
-              <button type="button" onClick={() => removeTag(tag)} className="opacity-70 hover:opacity-100">
-                <X size={10} />
-              </button>
-            </span>
+            <TagBadge key={tag} tag={tag} size="sm" onRemove={() => removeTag(tag)} />
           ))}
         </div>
         <div className="flex gap-2">

@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Car, Phone, Mail } from 'lucide-react'
+import { Plus, Pencil, Trash2, Car, Phone, Mail, Eye } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import ChauffeurForm from './ChauffeurForm'
+import FicheChauffeurModal from './FicheChauffeurModal'
 import { deleteChauffeurAction, updateStatutChauffeurAction } from '@/app/actions/chauffeurs'
 import type { Chauffeur } from '@/types/database'
 
@@ -31,9 +32,11 @@ export default function ChauffeursClient({ initialChauffeurs }: { initialChauffe
   const [modalOpen, setModalOpen] = useState(false)
   const [editChauffeur, setEditChauffeur] = useState<Chauffeur | undefined>()
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [ficheChauffeur, setFicheChauffeur] = useState<ChauffeurWithStats | null>(null)
 
   function openCreate() { setEditChauffeur(undefined); setModalOpen(true) }
-  function openEdit(c: Chauffeur) { setEditChauffeur(c); setModalOpen(true) }
+  function openEdit(c: Chauffeur) { setEditChauffeur(c); setFicheChauffeur(null); setModalOpen(true) }
+  function openFiche(c: ChauffeurWithStats) { setFicheChauffeur(c) }
   function handleSuccess() { setModalOpen(false); window.location.reload() }
 
   async function handleDelete(id: string) {
@@ -130,14 +133,12 @@ export default function ChauffeursClient({ initialChauffeurs }: { initialChauffe
 
                 {/* Actions */}
                 <div className="flex gap-2">
-                  {c.email && (
-                    <button
-                      onClick={() => window.open(`mailto:${c.email}?subject=Brief mission`)}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-neutral-800 py-1.5 text-xs text-neutral-400 transition hover:border-neutral-700 hover:text-white"
-                    >
-                      <Mail size={11} /> Brief
-                    </button>
-                  )}
+                  <button
+                    onClick={() => openFiche(c)}
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-neutral-800 py-1.5 text-xs text-neutral-400 transition hover:border-neutral-700 hover:text-[#C9A060]"
+                  >
+                    <Eye size={11} /> Fiche
+                  </button>
                   <button
                     onClick={() => openEdit(c)}
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-neutral-800 py-1.5 text-xs text-neutral-400 transition hover:border-neutral-700 hover:text-white"
@@ -161,6 +162,14 @@ export default function ChauffeursClient({ initialChauffeurs }: { initialChauffe
         title={editChauffeur ? 'Modifier le chauffeur' : 'Nouveau chauffeur'}>
         <ChauffeurForm chauffeur={editChauffeur} onSuccess={handleSuccess} />
       </Modal>
+
+      {ficheChauffeur && (
+        <FicheChauffeurModal
+          chauffeur={ficheChauffeur}
+          onClose={() => setFicheChauffeur(null)}
+          onEdit={(c) => openEdit(c)}
+        />
+      )}
     </div>
   )
 }

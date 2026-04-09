@@ -37,6 +37,7 @@ const schema = z.object({
   date: z.string().min(1, 'Date requise'),
   heure: z.string().min(1, 'Heure requise'),
   client_id: z.string().min(1, 'Client requis'),
+  source_chauffeur: z.enum(['interne', 'partenaire']).default('interne'),
   chauffeur_id: z.string().optional().default(''),
   partenaire_id: z.string().optional().default(''),
   dossier_id: z.string().optional().default(''),
@@ -110,6 +111,7 @@ export default function ReservationForm({ reservation, clients, chauffeurs, part
       date: reservation.date as string,
       heure: (reservation.heure as string)?.slice(0, 5),
       client_id: reservation.client_id as string,
+      source_chauffeur: ((reservation.partenaire_id as string) ? 'partenaire' : 'interne') as 'interne' | 'partenaire',
       chauffeur_id: (reservation.chauffeur_id as string) ?? '',
       partenaire_id: (reservation.partenaire_id as string) ?? '',
       dossier_id: (reservation.dossier_id as string) ?? '',
@@ -147,6 +149,7 @@ export default function ReservationForm({ reservation, clients, chauffeurs, part
       service: 'transfert_aeroport',
       entite: entiteOptions[0]?.value ?? 'entite_1',
       currency: deviseDefaut,
+      source_chauffeur: 'interne',
       statut: 'devis',
       fact_statut: 'non_facture',
       pax: 1,
@@ -160,6 +163,7 @@ export default function ReservationForm({ reservation, clients, chauffeurs, part
   })
 
   const service = watch('service')
+  const sourceChauffeur = watch('source_chauffeur')
   const repercuterFrais = watch('repercuter_frais')
   const tauxFrais = watch('taux_frais_client') ?? 2.95
   const montantValue = watch('montant') ?? 0
@@ -214,8 +218,10 @@ export default function ReservationForm({ reservation, clients, chauffeurs, part
 
   async function onSubmit(data: FormData) {
     setServerError('')
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { source_chauffeur, ...rest } = data
     const payload = {
-      ...data,
+      ...rest,
       stops: stops.filter((s) => s.trim()),
       chauffeur_id: data.chauffeur_id || null,
       partenaire_id: data.partenaire_id || null,
@@ -260,14 +266,42 @@ export default function ReservationForm({ reservation, clients, chauffeurs, part
           options={dossiers.map((d) => ({ value: d.id, label: d.nom }))} />
       </div>
 
-      {/* Chauffeur + Partenaire */}
-      <div className="grid grid-cols-2 gap-3">
-        <Select label="Chauffeur" {...register('chauffeur_id')} placeholder="Aucun"
-          options={chauffeurs.map((c) => ({ value: c.id, label: c.nom }))} />
-        <Select label="Partenaire sous-traitant" {...register('partenaire_id')} placeholder="Aucun"
-          options={partenaires.map((p) => ({ value: p.id, label: p.nom }))} />
+      {/* Source chauffeur + sélecteur */}
+      <div className="space-y-2 rounded-lg border p-3" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Attribution</p>
+          <div className="flex items-center rounded-lg overflow-hidden text-xs" style={{ border: '1px solid var(--border)' }}>
+            <button
+              type="button"
+              onClick={() => { setValue('source_chauffeur', 'interne'); setValue('partenaire_id', ''); }}
+              className="px-3 py-1.5 transition"
+              style={sourceChauffeur === 'interne'
+                ? { background: 'var(--bg-4)', color: 'var(--text)' }
+                : { color: 'var(--text-muted)', background: 'transparent' }}>
+              Mes chauffeurs
+            </button>
+            <button
+              type="button"
+              onClick={() => { setValue('source_chauffeur', 'partenaire'); setValue('chauffeur_id', ''); }}
+              className="px-3 py-1.5 transition"
+              style={sourceChauffeur === 'partenaire'
+                ? { background: 'var(--bg-4)', color: 'var(--text)' }
+                : { color: 'var(--text-muted)', background: 'transparent' }}>
+              Sous-traitant
+            </button>
+          </div>
+        </div>
+        {sourceChauffeur === 'interne' ? (
+          <Select label="Chauffeur" {...register('chauffeur_id')} placeholder="Aucun"
+            options={chauffeurs.map((c) => ({ value: c.id, label: c.nom }))} />
+        ) : (
+          <div className="space-y-2">
+            <Select label="Partenaire sous-traitant" {...register('partenaire_id')} placeholder="Aucun"
+              options={partenaires.map((p) => ({ value: p.id, label: p.nom }))} />
+            <Input label="Référence partenaire" {...register('ref_partenaire')} placeholder="BL-2025-042" />
+          </div>
+        )}
       </div>
-      <Input label="Référence partenaire" {...register('ref_partenaire')} placeholder="BL-2025-042" />
 
       {/* Trajet */}
       {hasTrajet && (

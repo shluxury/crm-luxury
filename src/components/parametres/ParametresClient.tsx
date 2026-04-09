@@ -165,13 +165,13 @@ export default function ParametresClient({ settings }: ParametresClientProps) {
       </div>
 
       {/* Onglets */}
-      <div className="mb-6 flex gap-1 rounded-xl border border-neutral-800 bg-neutral-900/50 p-1">
+      <div className="mb-6 flex flex-wrap gap-1 rounded-xl border border-neutral-800 bg-neutral-900/50 p-1">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => { setTab(id); setSaved(false) }}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition ${
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition whitespace-nowrap ${
               tab === id ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:text-neutral-300'
             }`}>
-            <Icon size={15} />
+            <Icon size={13} />
             {label}
           </button>
         ))}

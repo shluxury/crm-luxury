@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { logout } from '@/app/actions/auth'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/components/providers/ThemeProvider'
+import GlobalSearch from './GlobalSearch'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -19,6 +20,7 @@ import {
   Sparkles,
   Sun,
   Moon,
+  Search,
 } from 'lucide-react'
 
 const navItems = [
@@ -41,6 +43,8 @@ export default function Sidebar({ userEmail }: SidebarProps) {
   const { theme, toggleTheme } = useTheme()
 
   return (
+    <>
+    <GlobalSearch />
     <aside
       className="flex w-56 flex-shrink-0 flex-col"
       style={{
@@ -64,6 +68,25 @@ export default function Sidebar({ userEmail }: SidebarProps) {
           </svg>
         </div>
         <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>CRM Luxury</span>
+      </div>
+
+      {/* Recherche globale */}
+      <div className="px-2 pt-2 pb-1">
+        <button
+          onClick={() => {
+            // Déclenche l'event Cmd+K pour ouvrir GlobalSearch
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))
+          }}
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs transition"
+          style={{ background: 'var(--bg-3)', border: '1px solid var(--border)', color: 'var(--text-dim)' }}
+          title="Recherche globale (⌘K)"
+        >
+          <Search size={12} className="flex-shrink-0" />
+          <span className="flex-1 text-left text-neutral-500">Rechercher...</span>
+          <kbd className="hidden sm:flex items-center gap-0.5 text-[9px] text-neutral-600">
+            <span>⌘</span><span>K</span>
+          </kbd>
+        </button>
       </div>
 
       {/* Navigation */}
@@ -187,5 +210,6 @@ export default function Sidebar({ userEmail }: SidebarProps) {
         </div>
       </div>
     </aside>
+    </>
   )
 }

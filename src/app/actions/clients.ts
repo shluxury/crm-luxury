@@ -134,3 +134,104 @@ export async function deleteClientAction(id: string) {
   revalidatePath('/clients')
   return { success: true }
 }
+
+export interface ClientReservation {
+  id: string
+  created_at: string
+  service: string
+  entite: string
+  date: string
+  heure: string
+  depart: string | null
+  destination: string | null
+  vehicule: string | null
+  montant: number
+  montant_percu: number
+  currency: string
+  statut: string
+  fact_statut: string
+  chauffeur_id: string | null
+  notes: string | null
+}
+
+export async function getClientReservations(clientId: string): Promise<ClientReservation[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('reservations')
+    .select('id, created_at, service, entite, date, heure, depart, destination, vehicule, montant, montant_percu, currency, statut, fact_statut, chauffeur_id, notes')
+    .eq('client_id', clientId)
+    .order('date', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as ClientReservation[]
+}
+
+export interface ClientFicheData extends ClientWithStats {
+  corp_adresse: string | null
+  corp_cp: string | null
+  corp_ville: string | null
+  corp_pays: string | null
+  corp_siret: string | null
+  corp_tva: string | null
+  pref_vehicule: string | null
+  pref_eau: string | null
+  pref_siege_enfant: boolean
+  pref_notes_chauffeur: string | null
+  reservations: ClientReservation[]
+  derniere_reservation: string | null
+  panier_moyen: number
+}
+
+export async function getClientFiche(clientId: string): Promise<ClientFicheData | null> {
+  const supabase = await createClient()
+
+  const [clientRes, resasRes] = await Promise.all([
+    supabase.from('clients').select('*').eq('id', clientId).single(),
+    supabase
+      .from('reservations')
+      .select('id, created_at, service, entite, date, heure, depart, destination, vehicule, montant, montant_percu, currency, statut, fact_statut, chauffeur_id, notes')
+      .eq('client_id', clientId)
+      .order('date', { ascending: false }),
+  ])
+
+  if (clientRes.error || !clientRes.data) return null
+
+  const c = clientRes.data
+  const reservations = (resasRes.data ?? []) as ClientReservation[]
+  const nonCancelled = reservations.filter((r) => r.statut !== 'cancelled')
+  const ca_total = nonCancelled.reduce((s, r) => s + (r.montant_percu ?? r.montant ?? 0), 0)
+  const panier_moyen = nonCancelled.length > 0 ? ca_total / nonCancelled.length : 0
+  const derniere = nonCancelled.length > 0 ? nonCancelled[0].date : null
+
+  return {
+    id: c.id,
+    prenom: c.prenom,
+    nom: c.nom,
+    tel: c.tel,
+    email: c.email,
+    nationalite: c.nationalite,
+    langue: c.langue,
+    tags: c.tags ?? [],
+    entreprise: c.entreprise,
+    notes: c.notes,
+    is_corporate: c.is_corporate,
+    corp_nom: c.corp_nom,
+    corp_adresse: c.corp_adresse,
+    corp_cp: c.corp_cp,
+    corp_ville: c.corp_ville,
+    corp_pays: c.corp_pays,
+    corp_siret: c.corp_siret,
+    corp_tva: c.corp_tva,
+    corp_contact_nom: c.corp_contact_nom,
+    corp_contact_tel: c.corp_contact_tel,
+    corp_contact_email: c.corp_contact_email,
+    pref_vehicule: c.pref_vehicule,
+    pref_eau: c.pref_eau,
+    pref_siege_enfant: c.pref_siege_enfant,
+    pref_notes_chauffeur: c.pref_notes_chauffeur,
+    missions_count: nonCancelled.length,
+    ca_total,
+    panier_moyen,
+    derniere_reservation: derniere,
+    reservations,
+  }
+}

@@ -88,3 +88,59 @@ export async function deleteChauffeurAction(id: string) {
   revalidatePath('/chauffeurs')
   return { success: true }
 }
+
+export interface ChauffeurMission {
+  id: string
+  service: string
+  date: string
+  heure: string
+  depart: string | null
+  destination: string | null
+  vehicule: string | null
+  statut: string
+  client_id: string | null
+  currency: string
+  montant_percu: number
+  montant: number
+}
+
+export interface ChauffeurFicheData {
+  prochaines: ChauffeurMission[]
+  passees: ChauffeurMission[]
+  missions_mois: number
+  missions_total: number
+  services_frequents: { service: string; count: number }[]
+}
+
+export async function getChauffeurMissions(chauffeurId: string): Promise<ChauffeurFicheData> {
+  const supabase = await createClient()
+  const today = new Date().toISOString().split('T')[0]
+  const debutMois = today.slice(0, 8) + '01'
+
+  const { data, error } = await supabase
+    .from('reservations')
+    .select('id, service, date, heure, depart, destination, vehicule, statut, client_id, currency, montant_percu, montant')
+    .eq('chauffeur_id', chauffeurId)
+    .neq('statut', 'cancelled')
+    .order('date', { ascending: true })
+
+  if (error) throw error
+
+  const all = (data ?? []) as ChauffeurMission[]
+  const prochaines = all.filter((r) => r.date >= today)
+  const passees = all.filter((r) => r.date < today).reverse()
+  const missions_mois = all.filter((r) => r.date >= debutMois && r.date <= today).length
+  const missions_total = all.length
+
+  // Services les plus fréquents
+  const serviceCount: Record<string, number> = {}
+  for (const r of all) {
+    serviceCount[r.service] = (serviceCount[r.service] ?? 0) + 1
+  }
+  const services_frequents = Object.entries(serviceCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([service, count]) => ({ service, count }))
+
+  return { prochaines, passees, missions_mois, missions_total, services_frequents }
+}
