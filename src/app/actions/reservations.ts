@@ -12,8 +12,10 @@ const ReservationSchema = z.object({
   client_id: z.string().uuid('Client requis'),
   chauffeur_id: z.string().uuid().optional().nullable(),
   partenaire_id: z.string().uuid().optional().nullable(),
+  dossier_id: z.string().uuid().optional().nullable(),
   depart: z.string().optional().default(''),
   destination: z.string().optional().default(''),
+  stops: z.array(z.string()).default([]),
   pax: z.number().min(1).default(1),
   bagages: z.number().min(0).default(0),
   vehicule: z.string().optional().default(''),
@@ -22,14 +24,32 @@ const ReservationSchema = z.object({
   cout: z.number().min(0).default(0),
   currency: z.enum(['EUR', 'USD', 'AED', 'GBP']).default('EUR'),
   mode_paiement: z.enum(['sumup', 'stripe', 'tpe', 'virement_fr', 'virement_dubai', 'especes', 'currenxie_us_usd', 'currenxie_uk_eur', 'currenxie_hk_hkd', 'currenxie_hk_eur']).optional().nullable(),
+  repercuter_frais: z.boolean().default(false),
+  taux_frais_client: z.number().default(2.95),
   montant_percu: z.number().min(0).default(0),
   statut: z.enum(['devis', 'confirmed', 'paid', 'part_paid', 'completed', 'cancelled']).default('devis'),
+  fact_statut: z.string().default('non_facture'),
+  cancel_reason: z.string().optional().default(''),
+  ref_partenaire: z.string().optional().default(''),
+  nb_heures: z.number().optional().nullable(),
+  mad_itinerary: z.string().optional().default(''),
+  wait_hours: z.number().optional().nullable(),
+  wait_rate: z.number().optional().nullable(),
   notes: z.string().optional().default(''),
-  // Restaurant
   resto: z.string().optional().default(''),
   couverts: z.number().optional().nullable(),
   occasion: z.string().optional().default(''),
   allergies: z.string().optional().default(''),
+  demandes_resto: z.string().optional().default(''),
+  extras: z.array(z.object({
+    desc: z.string(),
+    qty: z.number().min(0),
+    price: z.number().min(0),
+    type: z.enum(['panier', 'libre']),
+  })).default([]),
+  pricing_mode: z.enum(['marge', 'commission']).default('marge'),
+  montant_vol: z.number().optional().nullable(),
+  comm_taux: z.number().optional().nullable(),
 })
 
 type ReservationInput = z.infer<typeof ReservationSchema>
@@ -38,7 +58,7 @@ export async function getReservations() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('reservations')
-    .select('*, client:clients(id, prenom, nom), chauffeur:chauffeurs(id, nom), partenaire:partenaires(id, nom)')
+    .select('*, client:clients(id, prenom, nom), chauffeur:chauffeurs(id, nom), partenaire:partenaires(id, nom), dossier:dossiers(id, nom)')
     .order('date', { ascending: false })
     .order('heure', { ascending: false })
   if (error) throw error
@@ -69,10 +89,42 @@ export async function updateReservationAction(id: string, input: ReservationInpu
   return { success: true }
 }
 
-export async function updateStatutAction(id: string, statut: string) {
+export async function updateStatutAction(id: string, statut: string, cancel_reason?: string) {
   const supabase = await createClient()
-  const { error } = await supabase.from('reservations').update({ statut }).eq('id', id)
+  const { error } = await supabase
+    .from('reservations')
+    .update(cancel_reason !== undefined ? { statut, cancel_reason } : { statut })
+    .eq('id', id)
   if (error) return { error: error.message }
+
+  revalidatePath('/reservations')
+  return { success: true }
+}
+
+export async function updateFactStatutAction(id: string, fact_statut: string) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('reservations').update({ fact_statut }).eq('id', id)
+  if (error) return { error: error.message }
+
+  revalidatePath('/reservations')
+  return { success: true }
+}
+
+export async function duplicateReservationAction(id: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('reservations').select('*').eq('id', id).single()
+  if (error) return { error: error.message }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { id: _id, created_at: _ca, ...rest } = data
+  const { error: insertError } = await supabase.from('reservations').insert({
+    ...rest,
+    statut: 'devis',
+    fact_statut: 'non_facture',
+    montant_percu: 0,
+    cancel_reason: null,
+  })
+  if (insertError) return { error: insertError.message }
 
   revalidatePath('/reservations')
   return { success: true }

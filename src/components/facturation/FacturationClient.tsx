@@ -1,34 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, FileText, Search } from 'lucide-react'
-import { format } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { Plus, Trash2, FileText, Mail, Printer } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
-import Badge from '@/components/ui/Badge'
 import EmptyState from '@/components/ui/EmptyState'
 import FactureForm from './FactureForm'
-import { deleteFactureAction } from '@/app/actions/factures'
+import { deleteFactureAction, updateFactureStatutAction } from '@/app/actions/factures'
 import type { Client } from '@/types/database'
 
-const STATUT_CONFIG: Record<string, { variant: 'default' | 'warning' | 'success'; label: string }> = {
-  draft: { variant: 'default', label: 'Brouillon' },
-  sent: { variant: 'warning', label: 'Envoyée' },
-  paid: { variant: 'success', label: 'Payée' },
+type FilterTab = 'all' | 'draft' | 'sent' | 'paid' | 'retard'
+
+const STATUT_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  draft:  { label: 'Draft',      color: '#888888', bg: 'rgba(136,136,136,0.12)', border: 'rgba(136,136,136,0.3)' },
+  sent:   { label: 'Envoyée',    color: '#5b9ee0', bg: 'rgba(91,158,224,0.12)', border: 'rgba(91,158,224,0.3)' },
+  paid:   { label: 'Payée',      color: '#48c78e', bg: 'rgba(72,199,142,0.12)', border: 'rgba(72,199,142,0.3)' },
+  retard: { label: 'En retard',  color: '#e05a5a', bg: 'rgba(224,90,90,0.12)',  border: 'rgba(224,90,90,0.3)' },
 }
 
-const MODE_LABELS: Record<string, string> = {
-  sumup: 'SumUp',
-  stripe: 'Stripe',
-  tpe: 'TPE',
-  virement_fr: 'Virement FR',
-  virement_dubai: 'Virement Dubai',
-  especes: 'Espèces',
-  currenxie_us_usd: 'Currenxie US',
-  currenxie_uk_eur: 'Currenxie UK',
-  currenxie_hk_hkd: 'Currenxie HK',
-  currenxie_hk_eur: 'Currenxie HK/EUR',
+const ENTITE_LABELS: Record<string, string> = {
+  entite_1: 'LL',
+  entite_2: 'LC',
 }
 
 interface FacturationClientProps {
@@ -38,24 +30,29 @@ interface FacturationClientProps {
 
 export default function FacturationClient({ initialFactures, clients }: FacturationClientProps) {
   const [factures, setFactures] = useState(initialFactures)
-  const [search, setSearch] = useState('')
-  const [filterStatut, setFilterStatut] = useState('')
+  const [filterTab, setFilterTab] = useState<FilterTab>('all')
   const [modalOpen, setModalOpen] = useState(false)
   const [editFacture, setEditFacture] = useState<Record<string, unknown> | undefined>()
+  const [emailFactureId, setEmailFactureId] = useState<string | null>(null)
 
-  const filtered = factures.filter((f) => {
-    const client = f.client as Record<string, string> | null
-    const q = search.toLowerCase()
-    const matchSearch = !q ||
-      (f.numero as string).toLowerCase().includes(q) ||
-      `${client?.prenom ?? ''} ${client?.nom ?? ''}`.toLowerCase().includes(q)
-    const matchStatut = !filterStatut || f.statut === filterStatut
-    return matchSearch && matchStatut
-  })
+  const filtered = factures.filter((f) =>
+    filterTab === 'all' || f.statut === filterTab
+  )
 
   const totalPaid = factures
     .filter((f) => f.statut === 'paid')
-    .reduce((sum, f) => sum + (f.montant as number), 0)
+    .reduce((sum, f) => sum + ((f.montant as number) ?? 0), 0)
+  const totalEnRetard = factures
+    .filter((f) => f.statut === 'retard')
+    .reduce((sum, f) => sum + ((f.montant as number) ?? 0), 0)
+
+  const TABS: { value: FilterTab; label: string }[] = [
+    { value: 'all', label: 'Toutes' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'sent', label: 'Envoyées' },
+    { value: 'paid', label: 'Payées' },
+    { value: 'retard', label: 'En retard' },
+  ]
 
   function openCreate() { setEditFacture(undefined); setModalOpen(true) }
   function openEdit(f: Record<string, unknown>) { setEditFacture(f); setModalOpen(true) }
@@ -67,90 +64,131 @@ export default function FacturationClient({ initialFactures, clients }: Facturat
     setFactures((prev) => prev.filter((f) => f.id !== id))
   }
 
+  async function handleStatutChange(id: string, statut: string) {
+    await updateFactureStatutAction(id, statut)
+    setFactures((prev) => prev.map((f) => f.id === id ? { ...f, statut } : f))
+  }
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-white">Facturation</h1>
           <p className="mt-0.5 text-sm text-neutral-400">
             {factures.length} facture{factures.length > 1 ? 's' : ''}
-            {totalPaid > 0 && <span className="ml-2 text-[#C9A060]">{totalPaid.toLocaleString()} € perçus</span>}
+            {totalPaid > 0 && <span className="ml-2 text-[#C9A060]">· €{Math.round(totalPaid).toLocaleString('fr-FR')} perçus</span>}
+            {totalEnRetard > 0 && <span className="ml-2 text-red-400">· €{Math.round(totalEnRetard).toLocaleString('fr-FR')} en retard</span>}
           </p>
         </div>
         <Button onClick={openCreate}><Plus size={15} />Nouvelle facture</Button>
       </div>
 
-      {/* Filtres */}
-      <div className="mb-4 flex gap-3">
-        <div className="flex flex-1 items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2">
-          <Search size={15} className="text-neutral-500" />
-          <input type="text" placeholder="Numéro, client..."
-            value={search} onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-white placeholder-neutral-500 outline-none" />
-        </div>
-        <select value={filterStatut} onChange={(e) => setFilterStatut(e.target.value)}
-          className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm text-white outline-none">
-          <option value="">Tous les statuts</option>
-          <option value="draft">Brouillon</option>
-          <option value="sent">Envoyée</option>
-          <option value="paid">Payée</option>
-        </select>
+      {/* Tabs */}
+      <div className="mb-4 flex gap-2">
+        {TABS.map((tab) => (
+          <button key={tab.value} onClick={() => setFilterTab(tab.value)}
+            className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+              filterTab === tab.value ? 'border-[#C9A060] text-[#C9A060]' : 'border-neutral-800 text-neutral-400 hover:border-neutral-700'
+            }`}>
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {filtered.length === 0 ? (
         <EmptyState icon={FileText}
-          title={search || filterStatut ? 'Aucun résultat' : 'Aucune facture'}
-          description={!search && !filterStatut ? 'Créez votre première facture' : undefined}
-          action={!search && !filterStatut ? <Button size="sm" onClick={openCreate}><Plus size={13} />Nouvelle facture</Button> : undefined} />
+          title={filterTab !== 'all' ? 'Aucune facture dans cette catégorie' : 'Aucune facture'}
+          description={filterTab === 'all' ? 'Créez votre première facture' : undefined}
+          action={filterTab === 'all' ? <Button size="sm" onClick={openCreate}><Plus size={13} />Nouvelle facture</Button> : undefined} />
       ) : (
         <div className="overflow-hidden rounded-xl border border-neutral-800">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-800 bg-neutral-900/50">
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400">Numéro</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400">Client</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400">Montant</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400">Paiement</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-neutral-400">Statut</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-500">N° Facture</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-500">Client</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-500">Prestation</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-500">Montant</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-500">Entité</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-500">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-neutral-500">Statut</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-800/50">
               {filtered.map((f) => {
                 const client = f.client as Record<string, string> | null
-                const sv = STATUT_CONFIG[f.statut as string] ?? { variant: 'default' as const, label: f.statut as string }
+                const reservation = f.reservation as Record<string, string> | null
+                const statut = f.statut as string
+                const statutCfg = STATUT_CONFIG[statut] ?? STATUT_CONFIG.draft
+                const rowBg = statut === 'retard' ? 'rgba(224,90,90,0.06)' : statut === 'paid' ? 'rgba(72,199,142,0.04)' : ''
+                const dateDisp = (f.created_at as string)
+                  ? new Date(f.created_at as string).toLocaleDateString('fr-FR')
+                  : '—'
+                // Service from reservation or notes
+                const serviceLabel = reservation?.service
+                  ? reservation.service.charAt(0).toUpperCase() + reservation.service.slice(1).replace(/_/g, ' ')
+                  : '—'
+                const entiteLabel = ENTITE_LABELS[f.entite as string] ?? (f.entite as string)
                 return (
-                  <tr key={f.id as string} className="group transition hover:bg-neutral-900/30">
-                    <td className="px-4 py-3 font-mono text-sm text-white">{f.numero as string}</td>
-                    <td className="px-4 py-3 text-neutral-300">
-                      {client ? `${client.prenom} ${client.nom}` : <span className="text-neutral-600">-</span>}
+                  <tr key={f.id as string} style={{ background: rowBg }}
+                    className="border-b border-neutral-800/50 transition hover:bg-neutral-900/30">
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-sm font-semibold text-[#C9A060]">{f.numero as string}</span>
                     </td>
-                    <td className="px-4 py-3 text-neutral-400">
-                      {f.created_at
-                        ? format(new Date(f.created_at as string), 'd MMM yyyy', { locale: fr })
-                        : '-'}
+                    <td className="px-4 py-3 font-medium text-white">
+                      {client ? `${client.prenom} ${client.nom}` : <span className="text-neutral-600">—</span>}
+                    </td>
+                    <td className="max-w-[180px] truncate px-4 py-3 text-xs text-neutral-400">
+                      {serviceLabel}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-medium text-white">
-                        {(f.montant as number).toLocaleString()} {f.currency as string}
+                      <span className="font-semibold text-white">
+                        {Math.round((f.montant as number) ?? 0).toLocaleString('fr-FR')}
+                      </span>
+                      <span className="ml-1 text-xs text-neutral-500">{f.currency as string}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                        style={{ background: 'rgba(201,160,96,0.12)', color: '#C9A060', border: '1px solid rgba(201,160,96,0.3)' }}>
+                        {entiteLabel}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-neutral-400 text-xs">
-                      {f.mode_paiement ? MODE_LABELS[f.mode_paiement as string] ?? f.mode_paiement as string : '-'}
+                    <td className="px-4 py-3 text-xs text-neutral-400 whitespace-nowrap">{dateDisp}</td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={statut}
+                        onChange={(e) => handleStatutChange(f.id as string, e.target.value)}
+                        style={{ color: statutCfg.color, background: statutCfg.bg, border: `1px solid ${statutCfg.border}` }}
+                        className="cursor-pointer rounded-md px-2 py-1 text-xs font-medium outline-none"
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="sent">Envoyée</option>
+                        <option value="paid">Payée</option>
+                        <option value="retard">En retard</option>
+                      </select>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant={sv.variant}>{sv.label}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1 opacity-0 transition group-hover:opacity-100">
+                      <div className="flex items-center justify-end gap-1">
+                        <a href={`/api/pdf/facture/${f.id as string}`} target="_blank" rel="noreferrer"
+                          className="rounded-lg border border-neutral-800 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-700 hover:text-[#C9A060]"
+                          title="Télécharger PDF">
+                          <span className="flex items-center gap-1"><Printer size={11} /> PDF</span>
+                        </a>
+                        {!!(client?.email) && (
+                          <button onClick={() => setEmailFactureId(f.id as string)}
+                            className="rounded-lg border border-neutral-800 p-1.5 text-neutral-400 transition hover:border-neutral-700 hover:text-sky-400"
+                            title="Envoyer par email">
+                            <Mail size={11} />
+                          </button>
+                        )}
                         <button onClick={() => openEdit(f)}
-                          className="rounded-lg p-1.5 text-neutral-400 transition hover:bg-neutral-800 hover:text-white">
-                          <Pencil size={13} />
+                          className="rounded-lg border border-neutral-800 px-2 py-1 text-xs text-neutral-400 transition hover:border-neutral-700 hover:text-white">
+                          Éditer
                         </button>
                         <button onClick={() => handleDelete(f.id as string)}
-                          className="rounded-lg p-1.5 text-neutral-400 transition hover:bg-red-950/50 hover:text-red-400">
-                          <Trash2 size={13} />
+                          className="rounded-lg border border-neutral-800 p-1.5 text-neutral-500 transition hover:border-red-900/50 hover:text-red-400">
+                          <Trash2 size={11} />
                         </button>
                       </div>
                     </td>
@@ -166,6 +204,26 @@ export default function FacturationClient({ initialFactures, clients }: Facturat
         title={editFacture ? 'Modifier la facture' : 'Nouvelle facture'} size="md">
         <FactureForm facture={editFacture} clients={clients} onSuccess={handleSuccess} />
       </Modal>
+
+      {/* Email modal placeholder - shown when emailFactureId is set */}
+      {!!emailFactureId && (
+        <Modal open={!!emailFactureId} onClose={() => setEmailFactureId(null)}
+          title="Envoyer la facture" size="sm">
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-neutral-400">
+              La facture sera envoyée par email au client associé.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setEmailFactureId(null)} className="flex-1">Annuler</Button>
+              <a href={`/api/pdf/facture/${emailFactureId}`} target="_blank" rel="noreferrer"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#C9A060] px-4 py-2 text-sm font-medium text-black transition hover:bg-[#b8904e]"
+                onClick={() => setEmailFactureId(null)}>
+                <FileText size={14} /> Ouvrir PDF
+              </a>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

@@ -19,7 +19,7 @@ const schema = z.object({
   montant: z.coerce.number().min(0).default(0),
   currency: z.enum(['EUR', 'USD', 'AED', 'GBP']).default('EUR'),
   mode_paiement: z.enum(['sumup', 'stripe', 'tpe', 'virement_fr', 'virement_dubai', 'especes', 'currenxie_us_usd', 'currenxie_uk_eur', 'currenxie_hk_hkd', 'currenxie_hk_eur']).optional().nullable(),
-  statut: z.enum(['draft', 'sent', 'paid']).default('draft'),
+  statut: z.enum(['draft', 'sent', 'paid', 'retard']).default('draft'),
   notes: z.string().optional().default(''),
 })
 
@@ -114,6 +114,7 @@ export default function FactureForm({ facture, clients, onSuccess }: FactureForm
           { value: 'draft', label: 'Brouillon' },
           { value: 'sent', label: 'Envoyée' },
           { value: 'paid', label: 'Payée' },
+          { value: 'retard', label: 'En retard' },
         ]} />
       </div>
 

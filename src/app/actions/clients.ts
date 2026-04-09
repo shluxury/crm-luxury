@@ -25,7 +25,10 @@ const ClientSchema = z.object({
   corp_contact_tel: z.string().optional(),
   corp_contact_email: z.string().optional().or(z.literal('')),
   pref_vehicule: z.string().optional(),
+  pref_eau: z.string().optional(),
+  pref_siege_enfant: z.boolean().default(false),
   pref_notes_chauffeur: z.string().optional(),
+  tags: z.array(z.string()).default([]),
 })
 
 type ClientInput = z.infer<typeof ClientSchema>
@@ -38,6 +41,65 @@ export async function getClients() {
     .order('nom', { ascending: true })
   if (error) throw error
   return data
+}
+
+export interface ClientWithStats {
+  id: string
+  prenom: string
+  nom: string
+  tel: string | null
+  email: string | null
+  nationalite: string | null
+  langue: string
+  tags: string[]
+  entreprise: string | null
+  is_corporate: boolean
+  corp_nom: string | null
+  corp_contact_nom: string | null
+  corp_contact_tel: string | null
+  corp_contact_email: string | null
+  notes: string | null
+  missions_count: number
+  ca_total: number
+}
+
+export async function getClientsWithStats(): Promise<ClientWithStats[]> {
+  const supabase = await createClient()
+
+  const [clientsRes, resasRes] = await Promise.all([
+    supabase.from('clients').select('*').order('nom'),
+    supabase.from('reservations').select('client_id, montant, montant_percu, statut').neq('statut', 'cancelled'),
+  ])
+  if (clientsRes.error) throw clientsRes.error
+
+  const resas = resasRes.data ?? []
+  const statsByClient: Record<string, { missions: number; ca: number }> = {}
+  for (const r of resas) {
+    if (!r.client_id) continue
+    if (!statsByClient[r.client_id]) statsByClient[r.client_id] = { missions: 0, ca: 0 }
+    statsByClient[r.client_id].missions++
+    statsByClient[r.client_id].ca += r.montant_percu ?? r.montant ?? 0
+  }
+
+  return (clientsRes.data ?? []).map((c) => ({
+    id: c.id,
+    prenom: c.prenom,
+    nom: c.nom,
+    tel: c.tel,
+    email: c.email,
+    nationalite: c.nationalite,
+    langue: c.langue,
+    tags: c.tags ?? [],
+    entreprise: c.entreprise,
+    is_corporate: c.is_corporate,
+    corp_nom: c.corp_nom,
+    corp_contact_nom: c.corp_contact_nom,
+    corp_contact_tel: c.corp_contact_tel,
+    corp_contact_email: c.corp_contact_email,
+    notes: c.notes,
+    missions_count: statsByClient[c.id]?.missions ?? 0,
+    ca_total: statsByClient[c.id]?.ca ?? 0,
+  }))
 }
 
 export async function createClientAction(input: ClientInput) {

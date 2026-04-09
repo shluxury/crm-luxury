@@ -57,3 +57,25 @@ export async function deleteDossierAction(id: string) {
   revalidatePath('/dossiers')
   return { success: true }
 }
+
+export async function encaisserDossierAction(id: string, montant: number) {
+  const supabase = await createClient()
+
+  // Récupère le montant actuel
+  const { data, error: fetchError } = await supabase
+    .from('dossiers')
+    .select('montant_percu')
+    .eq('id', id)
+    .single()
+  if (fetchError || !data) return { error: 'Dossier introuvable' }
+
+  const newMontant = (data.montant_percu ?? 0) + montant
+  const { error } = await supabase
+    .from('dossiers')
+    .update({ montant_percu: newMontant })
+    .eq('id', id)
+  if (error) return { error: error.message }
+
+  revalidatePath('/dossiers')
+  return { success: true, montant_percu: newMontant }
+}

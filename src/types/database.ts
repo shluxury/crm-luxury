@@ -192,6 +192,10 @@ export type Database = {
           wait_rate: number | null
           notes: string | null
           cancel_reason: string | null
+          extras: Json | null
+          pricing_mode: string | null
+          montant_vol: number | null
+          comm_taux: number | null
         }
         Insert: {
           service: string
@@ -231,6 +235,10 @@ export type Database = {
           wait_rate?: number | null
           notes?: string | null
           cancel_reason?: string | null
+          extras?: Json | null
+          pricing_mode?: string | null
+          montant_vol?: number | null
+          comm_taux?: number | null
         }
         Update: Partial<Database['public']['Tables']['reservations']['Insert']>
         Relationships: []
@@ -327,9 +335,22 @@ export interface AppSettings {
     lang_defaut: string
   }
   integrations: {
-    aviationstack_key: string
+    airlabs_key: string
     google_maps_key: string
     stripe_secret_key: string
     stripe_publishable_key: string
+  }
+  email_templates: {
+    [templateId: string]: {
+      fr?: { subject: string; html: string }
+      en?: { subject: string; html: string }
+    }
+  }
+  localisation: {
+    lang_crm: string
+    lang_emails: string
+    lang_factures: string
+    devise_defaut: Currency
+    timezone: string
   }
 }

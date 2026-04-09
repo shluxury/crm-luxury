@@ -25,6 +25,37 @@ export async function getChauffeurs() {
   return data
 }
 
+export async function updateStatutChauffeurAction(id: string, statut: string) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('chauffeurs').update({ statut }).eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/chauffeurs')
+  return { success: true }
+}
+
+export async function getChauffeursWithStats() {
+  const supabase = await createClient()
+  const now = new Date()
+  const debut = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  const fin = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, '0')}`
+
+  const [chauffeursRes, resasMoisRes] = await Promise.all([
+    supabase.from('chauffeurs').select('*').order('nom'),
+    supabase.from('reservations').select('chauffeur_id, date, statut').gte('date', debut).lte('date', fin).neq('statut', 'cancelled'),
+  ])
+  if (chauffeursRes.error) throw chauffeursRes.error
+
+  const missionsByChauf: Record<string, number> = {}
+  for (const r of resasMoisRes.data ?? []) {
+    if (r.chauffeur_id) missionsByChauf[r.chauffeur_id] = (missionsByChauf[r.chauffeur_id] ?? 0) + 1
+  }
+
+  return (chauffeursRes.data ?? []).map((c) => ({
+    ...c,
+    missions_mois: missionsByChauf[c.id] ?? 0,
+  }))
+}
+
 export async function createChauffeurAction(input: ChauffeurInput) {
   const parsed = ChauffeurSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }

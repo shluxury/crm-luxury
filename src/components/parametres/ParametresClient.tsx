@@ -1,17 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, Plug, Mail, Eye, EyeOff, CheckCircle } from 'lucide-react'
+import { Building2, Plug, Mail, Eye, EyeOff, CheckCircle, FileText, Globe } from 'lucide-react'
 import { updateSettingAction } from '@/app/actions/settings'
 import type { AppSettings, EntiteConfig, Currency } from '@/types/database'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
+import EmailTemplatesTab from './EmailTemplatesTab'
 
 const TABS = [
   { id: 'entites', label: 'Entités', icon: Building2 },
+  { id: 'localisation', label: 'Localisation', icon: Globe },
   { id: 'integrations', label: 'Intégrations', icon: Plug },
   { id: 'emails', label: 'Emails', icon: Mail },
+  { id: 'templates', label: 'Modèles email', icon: FileText },
 ] as const
 
 type TabId = typeof TABS[number]['id']
@@ -101,6 +104,10 @@ export default function ParametresClient({ settings }: ParametresClientProps) {
   // Entités state
   const [entites, setEntites] = useState<EntiteConfig[]>(settings.entites)
 
+  // Localisation state
+  const [localisation, setLocalisation] = useState(settings.localisation)
+  const setLoc = (k: keyof typeof localisation, v: string) => setLocalisation((p) => ({ ...p, [k]: v }))
+
   // Intégrations state
   const [integrations, setIntegrations] = useState(settings.integrations)
   const setInteg = (k: keyof typeof integrations, v: string) => setIntegrations((p) => ({ ...p, [k]: v }))
@@ -115,6 +122,7 @@ export default function ParametresClient({ settings }: ParametresClientProps) {
     let result: { error?: string; success?: boolean } = {}
 
     if (tab === 'entites') result = await updateSettingAction('entites', entites)
+    else if (tab === 'localisation') result = await updateSettingAction('localisation', localisation)
     else if (tab === 'integrations') result = await updateSettingAction('integrations', integrations)
     else if (tab === 'emails') result = await updateSettingAction('email', emailConfig)
 
@@ -125,8 +133,10 @@ export default function ParametresClient({ settings }: ParametresClientProps) {
     }
   }
 
+  const isTemplateTab = tab === 'templates'
+
   return (
-    <div className="max-w-2xl">
+    <div className={isTemplateTab ? 'max-w-5xl' : 'max-w-2xl'}>
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-white">Paramètres</h1>
         <p className="mt-0.5 text-sm text-neutral-400">Configuration de votre CRM</p>
@@ -161,12 +171,47 @@ export default function ParametresClient({ settings }: ParametresClientProps) {
           </>
         )}
 
+        {tab === 'localisation' && (
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 space-y-4">
+            <p className="text-xs text-neutral-500">Paramètres de langue et de région utilisés dans le CRM, les emails et les factures.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <Select label="Langue du CRM" value={localisation.lang_crm} onChange={(e) => setLoc('lang_crm', e.target.value)}
+                options={[{ value: 'fr', label: 'Français' }, { value: 'en', label: 'English' }]} />
+              <Select label="Langue des emails clients" value={localisation.lang_emails} onChange={(e) => setLoc('lang_emails', e.target.value)}
+                options={[{ value: 'fr', label: 'Français' }, { value: 'en', label: 'English' }]} />
+              <Select label="Langue des factures" value={localisation.lang_factures} onChange={(e) => setLoc('lang_factures', e.target.value)}
+                options={[{ value: 'fr', label: 'Français' }, { value: 'en', label: 'English' }]} />
+              <Select label="Devise par défaut" value={localisation.devise_defaut} onChange={(e) => setLoc('devise_defaut', e.target.value)}
+                options={[
+                  { value: 'EUR', label: '€ Euro (EUR)' },
+                  { value: 'AED', label: 'د.إ Dirham (AED)' },
+                  { value: 'USD', label: '$ Dollar (USD)' },
+                  { value: 'GBP', label: '£ Sterling (GBP)' },
+                ]} />
+              <Select label="Fuseau horaire" value={localisation.timezone} onChange={(e) => setLoc('timezone', e.target.value)}
+                options={[
+                  { value: 'Europe/Paris', label: 'Paris (UTC+1/+2)' },
+                  { value: 'Asia/Dubai', label: 'Dubai (UTC+4)' },
+                  { value: 'Europe/London', label: 'London (UTC+0/+1)' },
+                  { value: 'America/New_York', label: 'New York (UTC-5/-4)' },
+                ]} />
+            </div>
+          </div>
+        )}
+
         {tab === 'integrations' && (
           <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 space-y-4">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-white">AviationStack</p>
-              <p className="text-xs text-neutral-500">Lookup de vol en temps réel (numéro de vol → infos compagnie, horaires)</p>
-              <ApiKeyInput label="Clé API AviationStack" value={integrations.aviationstack_key} onChange={(v) => setInteg('aviationstack_key', v)} placeholder="Clé API gratuite (500 req/mois)" />
+              <p className="text-sm font-medium text-white">Airlabs</p>
+              <p className="text-xs text-neutral-500">
+                Lookup de vol en temps réel — statut, retards, terminal, porte (500 req/mois gratuit)
+              </p>
+              <ApiKeyInput
+                label="Clé API Airlabs"
+                value={integrations.airlabs_key}
+                onChange={(v) => setInteg('airlabs_key', v)}
+                placeholder="Clé API Airlabs"
+              />
             </div>
 
             <div className="border-t border-neutral-800 pt-4 space-y-1">
@@ -177,7 +222,7 @@ export default function ParametresClient({ settings }: ParametresClientProps) {
 
             <div className="border-t border-neutral-800 pt-4 space-y-3">
               <p className="text-sm font-medium text-white">Stripe</p>
-              <p className="text-xs text-neutral-500">Génération de liens de paiement</p>
+              <p className="text-xs text-neutral-500">Génération de liens de paiement Stripe Checkout</p>
               <Input label="Clé publique (publishable)" value={integrations.stripe_publishable_key} onChange={(e) => setInteg('stripe_publishable_key', e.target.value)} placeholder="pk_live_..." />
               <ApiKeyInput label="Clé secrète (secret)" value={integrations.stripe_secret_key} onChange={(v) => setInteg('stripe_secret_key', v)} placeholder="sk_live_..." />
             </div>
@@ -220,18 +265,26 @@ export default function ParametresClient({ settings }: ParametresClientProps) {
           </div>
         )}
 
-        {/* Bouton sauvegarde */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          {saved && (
-            <span className="flex items-center gap-1.5 text-sm text-green-400">
-              <CheckCircle size={15} />
-              Enregistré
-            </span>
-          )}
-          <Button onClick={handleSave} loading={saving}>
-            Enregistrer les paramètres
-          </Button>
-        </div>
+        {tab === 'templates' && (
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+            <EmailTemplatesTab settings={settings} />
+          </div>
+        )}
+
+        {/* Bouton sauvegarde — masqué sur l'onglet templates (il a son propre bouton) */}
+        {!isTemplateTab && (
+          <div className="flex items-center justify-end gap-3 pt-2">
+            {saved && (
+              <span className="flex items-center gap-1.5 text-sm text-green-400">
+                <CheckCircle size={15} />
+                Enregistré
+              </span>
+            )}
+            <Button onClick={handleSave} loading={saving}>
+              Enregistrer les paramètres
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

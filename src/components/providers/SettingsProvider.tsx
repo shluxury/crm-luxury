@@ -9,7 +9,9 @@ const DEFAULT_SETTINGS: AppSettings = {
     { id: 'entite_2', nom: '', pays: '', devise: 'EUR', adresse: '', cp: '', ville: '', tel: '', email: '', siret: '', tva: '', iban: '', actif: false },
   ],
   email: { brevo_key: '', auto_send_client: false, auto_send_chauffeur: false, lang_defaut: 'fr' },
-  integrations: { aviationstack_key: '', google_maps_key: '', stripe_secret_key: '', stripe_publishable_key: '' },
+  integrations: { airlabs_key: '', google_maps_key: '', stripe_secret_key: '', stripe_publishable_key: '' },
+  email_templates: {},
+  localisation: { lang_crm: 'fr', lang_emails: 'fr', lang_factures: 'fr', devise_defaut: 'EUR', timezone: 'Europe/Paris' },
 }
 
 const SettingsContext = createContext<AppSettings>(DEFAULT_SETTINGS)
